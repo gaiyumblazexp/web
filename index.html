@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>WORLDSYNC — Global 3D Universe</title>
+  
+  <!-- PWA Settings -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#00f2fe">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2097/2097276.png">
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Three.js CDN Module Map -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- 3D Canvas Mount -->
+  <div id="webgl-container"></div>
+
+  <!-- HUD Interface -->
+  <header class="top-nav">
+    <div class="logo">
+      <span class="logo-icon">🌐</span> WORLDSYNC <span class="tag">Alpha 1.0</span>
+    </div>
+    <div class="current-world">
+      জগত: <span id="world-name">SYNC ISLAND (HUB)</span>
+    </div>
+    <div class="player-stats">
+      <span id="player-count">🟢 ১ জন সক্রিয়</span>
+      <button id="toggle-studio-btn" class="glow-btn">🛠️ ক্রিয়েটর স্টুডিও</button>
+    </div>
+  </header>
+
+  <!-- World Creator Toolbar -->
+  <div id="creator-toolbar" class="creator-toolbar hidden">
+    <div class="tool-title">🛠️ World Builder: অবজেক্ট বাছাই করুন</div>
+    <div class="tool-items">
+      <button class="tool-btn active" data-type="block">🧱 নিয়ন কিউব</button>
+      <button class="tool-btn" data-type="pylon">⚡ সাইবার পাইলন</button>
+      <button class="tool-btn" data-type="tree">🌳 ফ্যান্টাসি ট্রি</button>
+      <button class="tool-btn" data-type="light">💡 লুমেন লাইট</button>
+    </div>
+  </div>
+
+  <!-- Multiplayer Live Chat -->
+  <div class="chat-container">
+    <div id="chat-messages" class="chat-messages"></div>
+    <form id="chat-form" class="chat-input-bar">
+      <input type="text" id="chat-input" placeholder="বার্তা লিখুন..." autocomplete="off">
+      <button type="submit">পাঠান</button>
+    </form>
+  </div>
+
+  <!-- Desktop Controls Guide -->
+  <div class="controls-guide">
+    <p>🕹️ <b>W, A, S, D</b>: হাঁটাচলা | <b>SPACE</b>: লাফ</p>
+    <p>🖱️ <b>মাউস ড্র্যাগ</b>: ক্যামেরা ৩৬০° ঘোরান</p>
+    <p>🌀 পোর্টালে হেঁটে ঢুকে অন্য জগতে যান!</p>
+  </div>
+
+  <!-- Mobile Touch On-Screen Controls -->
+  <div id="mobile-controls">
+    <div id="joystick-zone">
+      <div id="joystick-knob"></div>
+    </div>
+    <button id="mobile-jump-btn">JUMP</button>
+  </div>
+
+  <!-- Main Game Loop Entry -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
