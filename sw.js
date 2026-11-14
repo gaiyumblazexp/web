@@ -1,16 +1,3 @@
-const CACHE_NAME = 'worldsync-v1';
-
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
-});
-
-self.addEventListener('fetch', (event) => {
-  // Pass network requests through directly
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
-  );
-});
+const K='zyvora-v1',A=['index.html','style.css','core.js','manifest.json','icon-192.png'];
+self.addEventListener('install',x=>x.waitUntil(caches.open(K).then(c=>c.addAll(A))));
+self.addEventListener('fetch',x=>{if(x.request.method!='GET'||!x.request.url.startsWith(self.location.origin))return;x.respondWith(fetch(x.request).then(r=>{const c=r.clone();caches.open(K).then(h=>h.put(x.request,c));return r}).catch(()=>caches.match(x.request)))});
