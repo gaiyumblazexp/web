@@ -1,4 +1,4 @@
-firebase.initializeApp({apiKey:"AIzaSyBI4GN_MeKm3fwVUeiouO0Opib-5w3-iio",authDomain:"gaivexofficial.firebaseapp.com",projectId:"gaivexofficial",storageBucket:"gaivexofficial.firebasestorage.app",messagingSenderId:"908554622906",appId:"1:908554622906:web:93df8fa45f7d29afbfef83"});
+firebase.initializeApp({apiKey:"AIzaSyCAAxCTT0bK-Ub4grAQ8i9kWMP2UlL4Tj0",authDomain:"zyvora-e880e.firebaseapp.com",projectId:"zyvora-e880e",storageBucket:"zyvora-e880e.firebasestorage.app",messagingSenderId:"986314347955",appId:"1:986314347955:web:1af8b9b4699a73f4dce7c6"});
 const auth=firebase.auth(),db=firebase.firestore(),FV=firebase.firestore.FieldValue,TS=FV.serverTimestamp;
 const $=s=>document.querySelector(s),v=i=>$('#'+i).value.trim();
 const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
