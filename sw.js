@@ -1,3 +1,3 @@
-const K='zyvora-v1',A=['index.html','style.css','core.js','manifest.json','icon-192.png'];
-self.addEventListener('install',x=>x.waitUntil(caches.open(K).then(c=>c.addAll(A))));
-self.addEventListener('fetch',x=>{if(x.request.method!='GET'||!x.request.url.startsWith(self.location.origin))return;x.respondWith(fetch(x.request).then(r=>{const c=r.clone();caches.open(K).then(h=>h.put(x.request,c));return r}).catch(()=>caches.match(x.request)))});
+const C='mavyqo-v1',F=['./','index.html','core.js','icon.svg','manifest.json'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F))));
+self.addEventListener('fetch',e=>{if(e.request.method!='GET'||!e.request.url.startsWith(location.origin))return;e.respondWith(fetch(e.request).then(r=>{const k=r.clone();caches.open(C).then(c=>c.put(e.request,k));return r}).catch(()=>caches.match(e.request)))});
