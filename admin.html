@@ -1,32 +1,103 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MAVYQO Admin</title>
-<style>*{box-sizing:border-box;margin:0}body{font-family:system-ui,sans-serif;background:#0d1230;color:#e8ecff}
-header{display:flex;gap:8px;align-items:center;padding:14px 18px;background:linear-gradient(90deg,#1b2bb8,#7b3fe4);flex-wrap:wrap}header b{font-size:20px;margin-right:auto}
-button{border:0;border-radius:10px;padding:8px 14px;cursor:pointer;font:600 14px system-ui;background:#24307a;color:#fff}button.on{background:#fff;color:#1b2bb8}
-.ok{background:#12915a}.no{background:#c0392b}main{padding:16px;max-width:980px;margin:auto}
-.c{background:#161d4a;border-radius:14px;padding:14px;margin-bottom:12px}.c img{height:130px;border-radius:8px;margin:6px 6px 0 0}
-.r{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}small{color:#9aa6e8}input{padding:10px;border-radius:10px;border:0;margin:4px;width:240px}.fl{color:#ffb454;font-weight:700}</style></head><body>
-<header><b>MAVYQO · Admin</b><span id=tb></span><button data-a=out>Log out</button></header><main id=v></main>
-<script type=module>
-import{auth,db,A,F,$,esc}from'./core.js';
-let tab='workers';const TB=['workers','posts','reviews','reports','users'];
-const all=n=>F.getDocs(F.collection(db,n)).then(s=>s.docs.map(d=>({id:d.id,...d.data()})));
-const up=(c,i,d)=>F.updateDoc(F.doc(db,c,i),d);
-const btn=(a,v,l,c='')=>`<button class="${c}" data-a=${a} data-v="${v}">${l}</button>`;
-A.onAuthStateChanged(auth,async u=>{if(!u)return $('#v').innerHTML='<div class=c><form id=lf><input name=e type=email placeholder=Email required><input name=p type=password placeholder=Password required><button>Log in</button></form></div>';
- const m=await F.getDoc(F.doc(db,'users',u.uid));if(!m.data()?.admin){$('#v').innerHTML='<div class=c>Access denied. Set admin:true on users/'+u.uid+' in Firestore.</div>';return}
- $('#tb').innerHTML=TB.map(x=>`<button data-a=tab data-v=${x}>${x}</button>`).join('');render()});
-async function render(){document.querySelectorAll('#tb button').forEach(b=>b.className=b.dataset.v==tab?'on':'');let h='';
- if(tab=='workers'){const[w,k]=await Promise.all([all('workers'),all('kyc')]);w.sort((a,b)=>(a.status=='pending'?0:1)-(b.status=='pending'?0:1));
-  h=w.map(x=>{const y=k.find(z=>z.id==x.id)||{},low=x.rc>=3&&x.rs/x.rc<2;return`<div class=c><b>${esc(x.name)}</b> · ${esc(x.cat)} · ${esc(x.area)} · <b>${x.status}</b> ${x.rc?`⭐${(x.rs/x.rc).toFixed(1)} (${x.rc})`:''} ${low?'<span class=fl>LOW RATING</span>':''}<p>${esc(x.bio)} · ${esc(x.phone)}</p><small>NID: ${esc(y.nid)}</small><div>${y.nidImg?`<img src="${esc(y.nidImg)}">`:''}${y.selfie?`<img src="${esc(y.selfie)}">`:''}</div><div class=r>${btn('ws',x.id+':approved','Approve','ok')}${btn('ws',x.id+':rejected','Reject')}${btn('ban',x.id,'Ban','no')}</div></div>`}).join('')}
- if(tab=='posts'){const p=await all('posts');p.sort((a,b)=>(a.status=='pending'?0:1)-(b.status=='pending'?0:1));h=p.map(x=>`<div class=c><b>${esc(x.title)}</b> · ${x.type} · ${esc(x.area)} · <b>${x.status}</b><p>${esc(x.desc)}</p><div>${(x.imgs||[]).map(s=>`<img src="${esc(s)}">`).join('')}</div><small>${esc(x.uname)}</small><div class=r>${btn('ps',x.id+':approved','Approve','ok')}${btn('ps',x.id+':rejected','Reject')}${btn('dp',x.id,'Delete','no')}</div></div>`).join('')}
- if(tab=='reviews')h=(await all('reviews')).map(x=>`<div class=c>⭐${x.r} by ${esc(x.name)} → ${esc(x.t)}<p>${esc(x.x)}</p>${btn('dr',x.id,'Delete','no')}</div>`).join('');
- if(tab=='reports'){const r=await all('reports'),n={};r.forEach(x=>n[x.t]=(n[x.t]||0)+1);h=r.map(x=>`<div class=c><b>${esc(x.t)}</b> (${n[x.t]} reports) <p>${esc(x.x)}</p><div class=r>${x.t[0]=='w'?btn('ban',x.t.slice(2),'Ban user','no'):btn('dp',x.t.slice(2),'Delete post','no')}${btn('dx',x.id,'Dismiss')}</div></div>`).join('')}
- if(tab=='users')h=(await all('users')).map(x=>`<div class=c>${esc(x.name)} · ${esc(x.area)} ${x.banned?'<b class=fl>BANNED</b>':''}<div class=r>${x.banned?btn('unban',x.id,'Unban','ok'):btn('ban',x.id,'Ban','no')}</div></div>`).join('');
- $('#v').innerHTML=h||'<div class=c>Nothing here.</div>'}
-const act={tab:v=>{tab=v;render()},out:()=>A.signOut(auth),
- ws:async v=>{const[i,s]=v.split(':');await up('workers',i,{status:s});render()},ps:async v=>{const[i,s]=v.split(':');await up('posts',i,{status:s});render()},
- dp:async v=>{await F.deleteDoc(F.doc(db,'posts',v));render()},dr:async v=>{await F.deleteDoc(F.doc(db,'reviews',v));render()},dx:async v=>{await F.deleteDoc(F.doc(db,'reports',v));render()},
- ban:async v=>{await up('users',v,{banned:true});try{await up('workers',v,{status:'banned',free:false})}catch{}render()},unban:async v=>{await up('users',v,{banned:false});render()}};
-document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b)act[b.dataset.a](b.dataset.v)});
-document.addEventListener('submit',async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));try{await A.signInWithEmailAndPassword(auth,d.e,d.p)}catch(x){alert(x.code)}});
-</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>MAVYQO Admin</title>
+<style>
+:root{--navy:#0a1240;--blue:#1f4bff;--purple:#6a2cff;--bg:#f3f5ff;--card:#fff;--tx:#0a1240;--mut:#5b648f;--line:#e1e5fa;--grad:linear-gradient(135deg,#1f4bff,#6a2cff)}
+@media(prefers-color-scheme:dark){:root{--bg:#070b26;--card:#10173f;--tx:#eef0ff;--mut:#9aa3d6;--line:#222b63}}
+*{box-sizing:border-box;margin:0}
+body{font:15px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+header{background:var(--grad);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:20px;flex:1}
+main{max-width:1000px;margin:auto;padding:16px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;border-radius:10px;padding:8px 14px;background:var(--grad);color:#fff}
+button.alt{background:var(--card);color:var(--tx);border:1px solid var(--line)}
+button.bad{background:#d7263d}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+input,select{padding:9px 11px;border-radius:10px;border:1px solid var(--line);background:var(--card)}
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.tabs button{background:var(--card);color:var(--tx);border:1px solid var(--line)}
+.tabs button.on{background:var(--grad);color:#fff;border-color:transparent}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.card b{font-size:30px;display:block}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;background:var(--card);border-radius:14px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mut);font-weight:600}
+.login{max-width:360px;margin:60px auto;display:grid;gap:10px}
+.msg{color:#d7263d}
+.pill{border-radius:99px;padding:2px 10px;font-size:12px;background:var(--line)}
+</style>
+</head>
+<body>
+<header><h1>MAVYQO Admin</h1><span id="who"></span><button class="alt" id="out" hidden>Log out</button></header>
+<main id="m"></main>
+<script type="module">
+import { auth, db } from "./firebase.js";
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { collection, getDocs, getDoc, doc, updateDoc, deleteDoc, addDoc, query, orderBy, limit, getCountFromServer, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const ROLES = ["user","seller","helper","delivery","provider","employer","moderator","admin"];
+const $ = s => document.querySelector(s), m = $("#m");
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let me=null, role=null, tab="overview";
+
+const audit = (action,target) => addDoc(collection(db,"audit"),{action,target,by:me.uid,byEmail:me.email,at:serverTimestamp()});
+
+function loginView(msg=""){
+  $("#out").hidden = true; $("#who").textContent = "";
+  m.innerHTML = `<form class="login card" id="lf"><h2>Admin sign in</h2><label for="e">Email</label><input id="e" type="email" required autocomplete="email"><label for="p">Password</label><input id="p" type="password" required autocomplete="current-password"><div class="msg" role="alert">${esc(msg)}</div><button>Log in</button></form>`;
+  $("#lf").onsubmit = async ev => { ev.preventDefault(); try{ await signInWithEmailAndPassword(auth,$("#e").value.trim(),$("#p").value); }catch(x){ loginView((x.code||"error").replace("auth/","").replaceAll("-"," ")); } };
+}
+$("#out").onclick = () => signOut(auth);
+
+onAuthStateChanged(auth, async u => {
+  me = u; role = null;
+  if(!u) return loginView();
+  try{ const s = await getDoc(doc(db,"users",u.uid)); role = s.exists()?s.data().role:null; }catch{ role=null; }
+  if(!["admin","moderator"].includes(role)){ await signOut(auth); return loginView("This account has no admin or moderator access."); }
+  $("#out").hidden = false; $("#who").textContent = `${u.email} · ${role}`;
+  show();
+});
+
+function tabs(){
+  const t = [["overview","Overview"],["listings","Listings"],["users","Users"],["audit","Audit log"]].filter(x=>role==="admin"||x[0]==="listings"||x[0]==="overview");
+  return `<div class="tabs">${t.map(x=>`<button data-t="${x[0]}" class="${tab===x[0]?"on":""}">${x[1]}</button>`).join("")}</div>`;
+}
+async function show(){
+  m.innerHTML = tabs() + `<div id="v">Loading…</div>`;
+  m.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;show();});
+  const v = $("#v");
+  try{
+    if(tab==="overview"){
+      const c = async n => (await getCountFromServer(collection(db,n))).data().count;
+      const [u,l,a] = await Promise.all([role==="admin"?c("users"):0,c("listings"),role==="admin"?c("audit"):0]);
+      v.innerHTML = `<div class="stats"><div class="card"><b>${u}</b>Users</div><div class="card"><b>${l}</b>Listings</div><div class="card"><b>${a}</b>Audit entries</div></div>`;
+    }
+    if(tab==="listings"){
+      const s = await getDocs(query(collection(db,"listings"),limit(200)));
+      const rows = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+      v.innerHTML = rows.length ? `<div class="wrap"><table><tr><th>Type</th><th>Title</th><th>Area</th><th>Owner</th><th>Status</th><th>Action</th></tr>${rows.map(r=>`<tr><td>${esc(r.type)}</td><td><b>${esc(r.title)}</b><br>${esc(r.desc)}</td><td>${esc(r.area)}</td><td>${esc(r.ownerName)}</td><td><span class="pill">${esc(r.status)}</span></td><td>${r.status==="active"?`<button class="alt" data-h="${r.id}">Hide</button>`:`<button class="alt" data-r="${r.id}">Restore</button>`} ${role==="admin"?`<button class="bad" data-x="${r.id}">Delete</button>`:""}</td></tr>`).join("")}</table></div>` : `<div class="card">No listings yet.</div>`;
+      v.querySelectorAll("[data-h]").forEach(b=>b.onclick=async()=>{ await updateDoc(doc(db,"listings",b.dataset.h),{status:"hidden"}); await audit("hide_listing",b.dataset.h); show(); });
+      v.querySelectorAll("[data-r]").forEach(b=>b.onclick=async()=>{ await updateDoc(doc(db,"listings",b.dataset.r),{status:"active"}); await audit("restore_listing",b.dataset.r); show(); });
+      v.querySelectorAll("[data-x]").forEach(b=>b.onclick=async()=>{ if(confirm("Delete permanently?")){ await deleteDoc(doc(db,"listings",b.dataset.x)); await audit("delete_listing",b.dataset.x); show(); } });
+    }
+    if(tab==="users" && role==="admin"){
+      const s = await getDocs(query(collection(db,"users"),limit(200)));
+      v.innerHTML = `<div class="wrap"><table><tr><th>Name</th><th>Email</th><th>Role</th></tr>${s.docs.map(d=>{const u=d.data();return `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td><select data-u="${d.id}" ${d.id===me.uid?"disabled":""}>${ROLES.map(r=>`<option ${r===u.role?"selected":""}>${r}</option>`).join("")}</select></td></tr>`}).join("")}</table></div>`;
+      v.querySelectorAll("[data-u]").forEach(sel=>sel.onchange=async()=>{ await updateDoc(doc(db,"users",sel.dataset.u),{role:sel.value}); await audit("set_role:"+sel.value,sel.dataset.u); });
+    }
+    if(tab==="audit" && role==="admin"){
+      const s = await getDocs(query(collection(db,"audit"),orderBy("at","desc"),limit(100)));
+      v.innerHTML = s.empty ? `<div class="card">No actions logged yet.</div>` : `<div class="wrap"><table><tr><th>When</th><th>By</th><th>Action</th><th>Target</th></tr>${s.docs.map(d=>{const a=d.data();return `<tr><td>${a.at?new Date(a.at.seconds*1000).toLocaleString():""}</td><td>${esc(a.byEmail)}</td><td>${esc(a.action)}</td><td>${esc(a.target)}</td></tr>`}).join("")}</table></div>`;
+    }
+  }catch(x){ v.innerHTML = `<div class="card msg">${esc(x.code||x.message)}. Check that firestore.rules is published.</div>`; }
+}
+</script>
+</body>
+</html>
