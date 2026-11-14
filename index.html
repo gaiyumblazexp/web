@@ -9,16 +9,18 @@ addEventListener('unhandledrejection',function(x){s('Promise: '+(x.reason&&x.rea
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-firestore-compat.js"></script>
 <script src="core.js"></script>
 <script>
+const D={name:'',phone:'',area:'',role:'user',banned:false,workerStatus:'none',free:false,ratingSum:0,ratingCount:0,complaints:0};
 const S={tab:'home',k:'',q:'',all:false,mode:'login',me:null,user:null,off:null,shell:null},U=()=>S.user,uid=()=>S.me.uid;
 if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 let dip;addEventListener('beforeinstallprompt',x=>{x.preventDefault();dip=x});
 const install=()=>dip?dip.prompt():modal('<h3>ফোনে ইনস্টল</h3><br><p>Android Chrome: ⋮ মেনু → "Install app" / "Add to Home screen"।<br>iPhone Safari: Share → "Add to Home Screen"।</p><br><button class=btn onclick="close()">ঠিক আছে</button>');
-auth.onAuthStateChanged(u=>{S.me=u;S.off&&S.off();S.user=null;
- if(u)S.off=db.collection('users').doc(u.uid).onSnapshot(s=>{S.user=s.exists?{id:s.id,name:'',phone:'',area:'',role:'user',banned:false,workerStatus:'none',free:false,ratingSum:0,ratingCount:0,complaints:0,...s.data()}:null;render()},err);else render()});
+auth.onAuthStateChanged(async u=>{S.me=u;S.off&&S.off();S.user=null;
+ if(u&&u.emailVerified){try{await u.getIdToken(true)}catch(x){}}
+ if(u)S.off=db.collection('users').doc(u.uid).onSnapshot(s=>{S.user=s.exists?{id:s.id,...D,...s.data()}:{id:u.uid,...D,missing:true};render()},err);else render()});
 const go=(t,k='')=>{S.tab=t;S.k=k;if(t=='help'||t=='donate'||t=='blood'||t=='community'){S.k=t=='community'?'':t;S.tab='community'}render();scrollTo(0,0)};
 function render(){const a=$('#app');
  if(!S.me){S.shell=null;return a.innerHTML=authView()}
- if(!S.me.emailVerified)return a.innerHTML=`<div class=center><div class=stack style="max-width:420px"><h2>ইমেইল ভেরিফাই করুন</h2><p><b>${e(S.me.email)}</b>-এ লিংক পাঠানো হয়েছে। লিংকে ক্লিক করে ফিরে এসে নিচের বাটন চাপুন।</p><button class=btn onclick="auth.currentUser.reload().then(()=>auth.currentUser.emailVerified?location.reload():toast('এখনও ভেরিফাই হয়নি'))">ভেরিফাই করেছি</button><button class="btn g" onclick="auth.currentUser.sendEmailVerification().then(()=>toast('আবার পাঠানো হয়েছে'))">আবার লিংক পাঠান</button><button class=lnk onclick="auth.signOut()">বের হন</button></div></div>`;
+ if(!S.me.emailVerified)return a.innerHTML=`<div class=center><div class=stack style="max-width:420px"><h2>ইমেইল ভেরিফাই করুন</h2><p><b>${e(S.me.email)}</b>-এ লিংক পাঠানো হয়েছে। লিংকে ক্লিক করে ফিরে এসে নিচের বাটন চাপুন।</p><button class=btn onclick="auth.currentUser.reload().then(()=>auth.currentUser.getIdToken(true)).then(()=>auth.currentUser.emailVerified?location.reload():toast('এখনও ভেরিফাই হয়নি'))">ভেরিফাই করেছি</button><button class="btn g" onclick="auth.currentUser.sendEmailVerification().then(()=>toast('আবার পাঠানো হয়েছে'))">আবার লিংক পাঠান</button><button class=lnk onclick="auth.signOut()">বের হন</button></div></div>`;
  if(!S.user)return a.innerHTML='<div class=center>লোড হচ্ছে…</div>';
  if(S.user.banned)return a.innerHTML=`<div class=center><div><h2>অ্যাকাউন্ট নিষিদ্ধ</h2><p>অভিযোগ বা কম রেটিংয়ের কারণে অ্যাডমিন আপনার অ্যাকাউন্ট বন্ধ করেছেন।</p><br><button class=btn onclick="auth.signOut()">বের হন</button></div></div>`;
  if(!S.user.name||!S.user.area||!/^01[3-9]\d{8}$/.test(S.user.phone))return a.innerHTML=`<div class=auth><div class=abox><h2 style="margin-bottom:12px">প্রোফাইল সম্পূর্ণ করুন</h2><label>পুরো নাম</label><input id=n value="${e(S.user.name)}"><label>মোবাইল নম্বর</label><input id=ph inputmode=tel placeholder="01XXXXXXXXX" value="${e(S.user.phone)}"><label>আপনার এলাকা</label><input id=ar value="${e(S.user.area)}"><button class="btn p" style="width:100%" onclick="fillP()">সংরক্ষণ করুন</button><p style="text-align:center;margin-top:12px"><button class=lnk onclick="auth.signOut()">বের হন</button></p></div></div>`;
@@ -37,7 +39,7 @@ async function reg(){const n=v('n'),ph=v('ph'),ar=v('ar').replace(/\s+/g,' ');
  try{const c=await auth.createUserWithEmailAndPassword(v('em'),v('pw'));
  await db.collection('users').doc(c.user.uid).set({name:n,phone:ph,area:ar,role:'user',banned:false,workerStatus:'none',free:false,ratingSum:0,ratingCount:0,complaints:0,createdAt:TS()});
  await c.user.sendEmailVerification()}catch(x){err(x)}}
-function fillP(){const n=v('n'),p=v('ph'),a=v('ar').replace(/\s+/g,' ');if(n.length<3||!/^01[3-9]\d{8}$/.test(p)||a.length<2)return toast('নাম, মোবাইল (01XXXXXXXXX) ও এলাকা দিন');db.collection('users').doc(uid()).update({name:n,phone:p,area:a}).catch(err)}
+function fillP(){const n=v('n'),p=v('ph'),a=v('ar').replace(/\s+/g,' ');if(n.length<3||!/^01[3-9]\d{8}$/.test(p)||a.length<2)return toast('নাম, মোবাইল (01XXXXXXXXX) ও এলাকা দিন');const r=db.collection('users').doc(uid());(S.user.missing?r.set({name:n,phone:p,area:a,role:'user',banned:false,workerStatus:'none',free:false,ratingSum:0,ratingCount:0,complaints:0,createdAt:TS()}):r.update({name:n,phone:p,area:a})).catch(err)}
 const chArea=()=>{const a=(prompt('আপনার এলাকা লিখুন',U().area)||'').replace(/\s+/g,' ').trim();a.length>1&&db.collection('users').doc(uid()).update({area:a}).then(()=>toast('এলাকা বদলানো হয়েছে'))};
 const ph1=(a,i)=>`<div class=ph>${a?.length?`<img src="${safe(a[0])}" alt="">`:i}</div>`;
 const pcard=p=>`<div class=card onclick="pView('${p.id}')" style="cursor:pointer">${ph1(p.imgs,'🛍️')}<b>${e(p.title)}</b><span class=price>৳${bn(p.price)}</span><span class=meta>${e(p.area)} · ${ago(p.createdAt)}</span></div>`;
