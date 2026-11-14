@@ -29,7 +29,7 @@ nav .plus{background:linear-gradient(135deg,var(--b),var(--p));color:#fff;border
 .vb{background:#fff4d6;padding:10px;border-radius:12px;margin-bottom:10px;font-size:14px}h3{margin:10px 0}
 </style></head><body><div id="t"></div><div id="app"></div>
 <script type="module">
-import{auth,db,A,F,L,t,setLang,$,esc,img,bad}from'./core.js';
+import{auth,db,A,F,L,t,setLang,$,esc,img,bad}from'./core.js?v=3';
 const S={area:localStorage.area||'Rangpur',r:'home',q:''},AR=['Rangpur','Dhaka','Chattogram','Rajshahi','Khulna','Sylhet','Barishal','Mymensingh'];
 const P={shop:'🛍️',job:'💼',community:'👥',donate:'🎁',blood:'🩸'},W={helper:'🤝',delivery:'📦',service:'🔧',guide:'🧭'};
 const toast=m=>{const e=$('#t');e.textContent=m;e.className='on';setTimeout(()=>e.className='',2600)};
@@ -79,7 +79,7 @@ document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target
   const txt=d.title+' '+d.desc,st=bad.test(txt)?'rejected':(/https?:|www\./i.test(txt)||(ty=='shop'&&+d.price>500000))?'pending':'approved';
   if(st=='rejected'){bt.disabled=0;return toast(t('rejected'))}
   await F.addDoc(F.collection(db,'posts'),{type:ty,title:d.title,desc:d.desc,price:d.price||'',bg:d.bg||'',phone:d.phone||'',imgs,area:S.area,uid:S.u.uid,uname:S.me.name,status:st,at:F.serverTimestamp()});toast(t(st=='approved'?'posted':'pending'))}
- $('#m')?.remove();render()}catch(x){toast(x.code||x.message);bt.disabled=0}});
+ $('#m')?.remove();render()}catch(x){console.error(x);toast((x.code||'')+' '+(x.message||'').slice(0,140));bt.disabled=0}});
 A.onAuthStateChanged(auth,async u=>{if(!u){S.u=null;return authV()}S.u=u;const r=F.doc(db,'users',u.uid);let s=await F.getDoc(r);
  if(!s.exists()){await F.setDoc(r,{name:S.pend?.name||u.email.split('@')[0],area:S.pend?.area||S.area,at:F.serverTimestamp()});s=await F.getDoc(r)}
  S.me=s.data();if(S.me.banned){await A.signOut(auth);return toast(t('banned'))}S.area=S.me.area||S.area;const w=await F.getDoc(F.doc(db,'workers',u.uid));S.w=w.exists()?w.data():null;shell();render()});
