@@ -1,88 +1,199 @@
-<!DOCTYPE html><html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>MAVYQO</title><meta name="theme-color" content="#1b2bb8"><link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg">
-<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;700&family=Sora:wght@600;800&display=swap" rel="stylesheet">
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MAVYQO</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-:root{--b:#2b3fe0;--p:#7b3fe4;--bg:#eef2ff;--tx:#14173a}*{box-sizing:border-box;margin:0}
-body{font-family:'Hind Siliguri',sans-serif;background:var(--bg);color:var(--tx);padding-bottom:84px}
-.hd{background:linear-gradient(160deg,#0d1470,#2b3fe0 60%,#7b3fe4);color:#fff;padding:14px 16px 18px;border-radius:0 0 28px 28px}
-.lg{font:800 22px Sora;letter-spacing:.04em;display:flex;align-items:center;gap:8px}.lg svg{width:34px}
-.row{display:flex;gap:8px;align-items:center}.sp{justify-content:space-between}
-select,input,textarea{font:inherit;width:100%;padding:11px 14px;border-radius:14px;border:1px solid #d5dcff;background:#fff;margin:5px 0}
-.hd select{width:auto;border:0;font-weight:700}.sr{margin-top:10px;display:flex}.sr input{border:0;box-shadow:0 4px 16px #0003}
-main{padding:14px;max-width:760px;margin:auto}
-.hero{background:linear-gradient(120deg,#141c8a,#6a35d9);color:#fff;border-radius:22px;padding:20px;margin-bottom:14px}.hero h2{font-size:21px;line-height:1.3}
-.g{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-.tl{border:0;border-radius:20px;padding:14px 4px;font:600 14px 'Hind Siliguri';color:var(--tx);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;box-shadow:0 2px 10px #2b3fe022}
-.tl b{font-size:28px}.tl:nth-child(4n+1){background:#e6e1ff}.tl:nth-child(4n+2){background:#dbeeff}.tl:nth-child(4n+3){background:#ffe9cf}.tl:nth-child(4n){background:#dcf7e8}
-.c{background:#fff;border-radius:18px;padding:14px;margin-bottom:12px;box-shadow:0 2px 12px #2b3fe018}.c p{margin:6px 0;color:#444}.c small{color:#778}
-.ims{display:flex;gap:6px;overflow-x:auto;margin-bottom:8px}.ims img{height:150px;border-radius:12px}
-.pr{float:right;font-style:normal;font-weight:700;color:var(--b)}.bg{background:#e11d48;color:#fff;border-radius:8px;padding:1px 8px;margin-left:6px}
-.bt,button.bt{background:linear-gradient(90deg,var(--b),var(--p));color:#fff;border:0;border-radius:14px;padding:10px 16px;font:600 15px 'Hind Siliguri';cursor:pointer;text-decoration:none;display:inline-block}
-.r{display:flex;gap:8px;margin-top:8px}.r button:not(.bt){background:#eef;border:0;border-radius:12px;padding:8px 12px;cursor:pointer;font:inherit}
-.ok{color:#0a8a4a;font-weight:700}.no{color:#c0392b;font-weight:700}
-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0;box-shadow:0 -4px 20px #2b3fe022}
-nav button{background:0;border:0;font:500 12px 'Hind Siliguri';color:#667;display:flex;flex-direction:column;align-items:center;cursor:pointer}nav b{font-size:22px}nav .on{color:var(--b);font-weight:700}
-nav .plus{background:linear-gradient(135deg,var(--b),var(--p));color:#fff;border-radius:50%;width:54px;height:54px;margin-top:-26px;font-size:30px;justify-content:center;border:4px solid #fff}
-.md{position:fixed;inset:0;background:#0008;display:flex;align-items:flex-end;z-index:9}.md>div{background:#fff;width:100%;max-height:90vh;overflow:auto;border-radius:24px 24px 0 0;padding:18px;max-width:760px;margin:auto}
-.fl{display:block;padding:11px;border:2px dashed #b9c4ff;border-radius:14px;margin:6px 0;text-align:center}
-#t{position:fixed;top:14px;left:50%;transform:translate(-50%,-90px);background:#14173a;color:#fff;padding:10px 18px;border-radius:14px;z-index:99;transition:.3s}#t.on{transform:translate(-50%,0)}
-.au{min-height:100vh;display:grid;place-items:center;padding:20px;background:linear-gradient(160deg,#0d1470,#2b3fe0 60%,#7b3fe4)}.au form{background:#fff;border-radius:24px;padding:22px;width:100%;max-width:400px}
-.vb{background:#fff4d6;padding:10px;border-radius:12px;margin-bottom:10px;font-size:14px}h3{margin:10px 0}
-</style></head><body><div id="t"></div><div id="app"></div>
+:root{--navy:#0a1240;--blue:#1f4bff;--purple:#6a2cff;--bg:#f3f5ff;--card:#fff;--tx:#0a1240;--mut:#5b648f;--line:#e1e5fa;--grad:linear-gradient(135deg,#1f4bff,#6a2cff)}
+[data-theme=dark]{--bg:#070b26;--card:#10173f;--tx:#eef0ff;--mut:#9aa3d6;--line:#222b63}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:16px/1.45 "Hind Siliguri",system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+#app{max-width:480px;margin:auto;min-height:100%;position:relative;padding-bottom:84px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.hero{background:var(--grad);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 20px;border-radius:0 0 28px 28px}
+.bar{display:flex;align-items:center;gap:10px}
+.bar .sp{flex:1}
+.ib{width:42px;height:42px;border-radius:14px;background:rgba(255,255,255,.18);color:#fff;font-size:20px}
+.chip{background:rgba(255,255,255,.18);color:#fff;border-radius:99px;padding:8px 14px}
+h1{font-size:26px;margin:14px 0 2px}
+.search{width:100%;margin-top:12px;padding:13px 16px;border-radius:99px;border:0;background:#fff;color:#0a1240}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:14px 12px}
+.tile{background:var(--card);border-radius:16px;padding:10px 2px;font-size:12px;text-align:center;border:1px solid var(--line)}
+.tile b{display:block;font-size:24px;font-weight:400}
+.sec{padding:6px 16px}
+.sec h2{font-size:18px;margin:10px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px}
+.card small{color:var(--mut)}
+.tag{display:inline-block;background:var(--grad);color:#fff;border-radius:99px;font-size:12px;padding:1px 10px;margin-bottom:6px}
+.empty{text-align:center;color:var(--mut);padding:26px 10px}
+.btn{background:var(--grad);color:#fff;border-radius:14px;padding:12px 18px;font-weight:700;width:100%}
+.btn.alt{background:var(--card);color:var(--tx);border:1px solid var(--line)}
+.row{display:flex;gap:8px;overflow-x:auto;padding:12px 16px}
+.row button{white-space:nowrap;padding:7px 14px;border-radius:99px;background:var(--card);border:1px solid var(--line)}
+.row button.on{background:var(--grad);color:#fff;border-color:transparent}
+nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:center;padding:8px 4px calc(8px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0}
+nav button{font-size:12px;color:var(--mut);display:flex;flex-direction:column;align-items:center;min-width:58px}
+nav button.on{color:var(--blue);font-weight:700}
+nav .plus{width:56px;height:56px;border-radius:50%;background:var(--grad);color:#fff;font-size:30px;margin-top:-26px;justify-content:center;box-shadow:0 6px 18px rgba(80,50,255,.45)}
+.ov{position:fixed;inset:0;background:rgba(5,8,30,.55);z-index:9;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--card);width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}
+.sheet h3{margin-bottom:10px}
+.sheet button.it{display:block;width:100%;text-align:left;padding:13px 8px;border-bottom:1px solid var(--line)}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:78%;max-width:340px;background:var(--navy);color:#fff;z-index:10;padding:20px 14px;overflow:auto}
+.drawer button{display:block;width:100%;text-align:left;color:#fff;padding:11px 8px;border-radius:12px}
+.drawer button:hover{background:rgba(255,255,255,.1)}
+label{display:block;font-size:14px;color:var(--mut);margin:10px 0 4px}
+input,select,textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg)}
+.toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:99px;z-index:20}
+.auth{padding:40px 22px}
+.err{color:#d7263d;font-size:14px;margin-top:8px}
+@media(prefers-reduced-motion:no-preference){.sheet,.drawer{animation:up .22s ease-out}@keyframes up{from{transform:translateY(24px);opacity:0}}}
+</style>
+</head>
+<body>
+<div id="app"></div>
 <script type="module">
-import{auth,db,A,F,L,t,setLang,$,esc,img,bad}from'./core.js?v=3';
-const S={area:localStorage.area||'Rangpur',r:'home',q:''},AR=['Rangpur','Dhaka','Chattogram','Rajshahi','Khulna','Sylhet','Barishal','Mymensingh'];
-const P={shop:'🛍️',job:'💼',community:'👥',donate:'🎁',blood:'🩸'},W={helper:'🤝',delivery:'📦',service:'🔧',guide:'🧭'};
-const toast=m=>{const e=$('#t');e.textContent=m;e.className='on';setTimeout(()=>e.className='',2600)};
-const LOGO='<svg viewBox="0 0 40 30"><path d="M2 28 11 2h6l-4 12 8-12h6l-3 26h-6l1-12-7 12z" fill="#7fb0ff"/><path d="M24 28 30 2h8l-6 26z" fill="#c59bff"/></svg>';
-const opt=(a,v)=>a.map(x=>`<option ${x==v?'selected':''}>${x}</option>`).join('');
-const modal=h=>{$('#m')?.remove();document.body.insertAdjacentHTML('beforeend',`<div class=md id=m data-a=cl><div>${h}</div></div>`)};
-function authV(){$('#app').innerHTML=`<div class=au><form id=au><div class=lg style="color:#2b3fe0">${LOGO}MAVYQO</div><h3>${t('tag')}</h3><input name=name placeholder="${t('name')}"><select name=area>${opt(AR,S.area)}</select><input name=email type=email placeholder="${t('email')}" required><input name=pass type=password minlength=6 placeholder="${t('pass')}" required><div class=r><button class=bt data-v=in>${t('login')}</button><button class=bt data-v=up>${t('signup')}</button></div></form></div>`}
-const shell=()=>{$('#app').innerHTML=`<div class=hd><div class="row sp"><div class=lg>${LOGO}MAVYQO</div><select id=ar data-a=area>${opt(AR,S.area)}</select></div><form class=sr id=sf><input id=q placeholder="${t('search')}" value="${esc(S.q)}"></form></div><main id=v></main><nav>${[['home','🏠'],['explore','🧭']].map(n=>nb(n)).join('')}<button class=plus data-a=new>＋</button>${[['inbox','💬'],['profile','👤']].map(n=>nb(n)).join('')}</nav>`};
-const nb=([k,i])=>`<button data-a=go data-v=${k} class="${S.r==k?'on':''}"><b>${i}</b>${t(k)}</button>`;
-const ok=()=>{if(!S.u.emailVerified){toast(t('verify'));return 0}return 1};
-const sort=a=>a.sort((x,y)=>(y.at?.seconds||0)-(x.at?.seconds||0));
-const m=s=>!S.q||JSON.stringify(s).toLowerCase().includes(S.q.toLowerCase());
-async function posts(ty){const s=await F.getDocs(F.query(F.collection(db,'posts'),F.where('type','==',ty),F.where('status','==','approved')));return sort(s.docs.map(d=>({id:d.id,...d.data()})).filter(p=>p.area==S.area&&m(p)))}
-async function workers(c){const q=c?[F.where('cat','==',c)]:[];const s=await F.getDocs(F.query(F.collection(db,'workers'),F.where('status','==','approved'),...q));const d=w=>S.pos&&w.lat?Math.hypot(w.lat-S.pos.lat,w.lng-S.pos.lng)*111:999;return s.docs.map(x=>({id:x.id,...x.data()})).filter(w=>w.area==S.area&&w.uid!=S.u.uid&&m(w)).map(w=>({...w,km:d(w)})).sort((a,b)=>(b.free-a.free)||a.km-b.km)}
-const pc=p=>`<div class=c>${p.imgs?.length?`<div class=ims>${p.imgs.map(s=>`<img src="${esc(s)}">`).join('')}</div>`:''}<b>${esc(p.title)}</b>${p.price?`<i class=pr>৳${esc(p.price)}</i>`:''}${p.bg?`<span class=bg>${esc(p.bg)}</span>`:''}<p>${esc(p.desc)}</p><small>📍${esc(p.area)} · ${esc(p.uname)}</small><div class=r>${p.phone?`<a class=bt href="tel:${esc(p.phone)}">📞 ${esc(p.phone)}</a>`:''}<button data-a=rep data-v="p:${p.id}">⚑ ${t('report')}</button></div></div>`;
-const wc=w=>`<div class=c><b>${W[w.cat]||''} ${esc(w.name)}</b> <span class="${w.free?'ok':'no'}">● ${t(w.free?'free':'busy')}</span><i class=pr>${w.rc?'⭐'+(w.rs/w.rc).toFixed(1)+' ('+w.rc+')':''}</i><p>${esc(w.bio)}</p><small>📍${esc(w.area)} ${w.km<999?'· '+w.km.toFixed(1)+' km':''} · ${t(w.cat)}</small><div class=r><button class=bt data-a=req data-v=${w.id}>${t('request')}</button><button data-a=rate data-v="w:${w.id}">⭐ ${t('rate')}</button><button data-a=rep data-v="w:${w.id}">⚑</button></div></div>`;
-async function render(){const[k,a]=S.r.split(':');let h='';
- if(S.r=='home'){const u=await posts('community');h=`<div class=hero><h2>${t('tag')}</h2><p>${t('shop')} · ${t('job')} · ${t('helper')} · ${t('blood')}</p></div><div class=g>${Object.keys(P).map(x=>tile('p:'+x,P[x],x)).join('')}${Object.keys(W).map(x=>tile('w:'+x,W[x],x)).join('')}</div><h3>🔥 ${t('updates')}</h3>${u.slice(0,3).map(pc).join('')||`<div class=c>${t('empty')}</div>`}`}
- else if(k=='p')h=`<h3>${P[a]} ${t(a)}</h3>`+((await posts(a)).map(pc).join('')||`<div class=c>${t('empty')}</div>`);
- else if(k=='w'||S.r=='explore'){if(!S.pos)navigator.geolocation?.getCurrentPosition(p=>S.pos={lat:p.coords.latitude,lng:p.coords.longitude},()=>0);h=`<h3>${t(a||'explore')}</h3>`+((await workers(a)).map(wc).join('')||`<div class=c>${t('empty')}</div>`)}
- else if(S.r=='inbox'){const g=async f=>(await F.getDocs(F.query(F.collection(db,'tasks'),F.where(f,'==',S.u.uid)))).docs.map(d=>({id:d.id,f,...d.data()}));const a=[...await g('to'),...await g('from')];h=sort(a).map(x=>`<div class=c><b>${x.f=='to'?'📥 '+esc(x.fname):'📤 '+esc(x.tname)}</b><p>${esc(x.text)}</p><small>${esc(x.st)}</small>${x.f=='to'&&x.st=='new'?`<div class=r><button class=bt data-a=tk data-v="${x.id}:accepted">${t('accept')}</button><button data-a=tk data-v="${x.id}:declined">${t('decline')}</button></div>`:''}</div>`).join('')||`<div class=c>${t('empty')}</div>`}
- else if(S.r=='profile'){const w=S.w;h=`<div class=c><b style="font-size:20px">👤 ${esc(S.me.name)}</b><p>${esc(S.u.email)} ${S.u.emailVerified?'<span class=ok>✔</span>':''}</p></div>${S.u.emailVerified?'':`<div class=vb>${t('verify')} <button class=bt data-a=rs>${t('resend')}</button></div>`}<div class=c><h3>⚙ ${t('settings')}</h3>${t('lang')}<select data-a=lang><option value=bn ${L=='bn'?'selected':''}>বাংলা</option><option value=en ${L=='en'?'selected':''}>English</option></select>${t('area')}<select data-a=area>${opt(AR,S.area)}</select>${S.ip?`<button class=bt data-a=ins>⬇ ${t('install')}</button>`:''}</div><div class=c><h3>💼 ${t('workreg')}</h3>${w?`${t('wstatus')}: <b>${w.status}</b>${w.status=='approved'?`<div class=r><button class=bt data-a=free>${w.free?t('busy'):t('free')}</button></div>`:''}`:`<button class=bt data-a=new data-v=work>${t('workreg')}</button>`}</div><button class=bt data-a=out>${t('logout')}</button>`}
- $('#v').innerHTML=h}
-const tile=(r,i,x)=>`<button class=tl data-a=go data-v="${r}"><b>${i}</b>${t(x)}</button>`;
-const form=ty=>modal(ty=='work'?`<h3>${t('workreg')}</h3><form id=f data-ty=work><select name=cat>${Object.keys(W).map(x=>`<option value=${x}>${t(x)}</option>`)}</select><input name=phone type=tel placeholder="${t('phone')}" required><textarea name=bio placeholder="${t('bio')}" required></textarea><input name=nid placeholder="${t('nid')}" required><label class=fl>🪪 ${t('nidphoto')}<input type=file name=nidf accept="image/*" required hidden></label><label class=fl>🤳 ${t('selfie')}<input type=file name=selfie accept="image/*" required hidden></label><button class=bt>${t('submit')}</button></form>`:`<h3>${P[ty]} ${t(ty)}</h3><form id=f data-ty=${ty}><input name=title placeholder="${t('title')}" required maxlength=80><textarea name=desc placeholder="${t('desc')}" required maxlength=600></textarea>${ty=='shop'||ty=='job'?`<input name=price type=number min=1 placeholder="${t('price')}" required>`:''}${ty=='blood'?`<select name=bg>${opt(['A+','A-','B+','B-','O+','O-','AB+','AB-'])}</select>`:''}<input name=phone type=tel placeholder="${t('phone')}" ${ty=='blood'?'required':''}>${ty!='blood'?`<label class=fl>📷 ${t('images')}<input type=file name=im accept="image/*" multiple hidden></label>`:''}<button class=bt>${t('submit')}</button></form>`);
-const act={
- go:v=>{S.r=v;shell();render()},cl:(v,b,e)=>{if(e.target.id=='m')$('#m').remove()},
- area:async(v,b)=>{S.area=b.value;localStorage.area=b.value;F.updateDoc(F.doc(db,'users',S.u.uid),{area:b.value});shell();render()},
- lang:(v,b)=>setLang(b.value),out:()=>A.signOut(auth),rs:()=>A.sendEmailVerification(S.u).then(()=>toast('✔')),
- ins:()=>S.ip.prompt(),
- new:v=>v=='work'?(ok()&&form('work')):modal(`<h3>＋ ${t('create')}</h3><div class=g>${Object.keys(P).map(x=>`<button class=tl data-a=fm data-v=${x}><b>${P[x]}</b>${t(x)}</button>`).join('')}<button class=tl data-a=new data-v=work><b>💼</b>${t('workreg')}</button></div>`),
- fm:v=>ok()&&form(v),
- req:async v=>{if(!ok())return;const x=prompt(t('need'));if(!x)return;const w=(await F.getDoc(F.doc(db,'workers',v))).data();await F.addDoc(F.collection(db,'tasks'),{from:S.u.uid,fname:S.me.name,to:v,tname:w.name,text:x.slice(0,300),st:'new',at:F.serverTimestamp()});toast(t('sent'))},
- tk:async v=>{const[i,s]=v.split(':');await F.updateDoc(F.doc(db,'tasks',i),{st:s});render()},
- rate:async v=>{if(!ok())return;const r=+prompt('1-5');if(!(r>=1&&r<=5))return;const x=prompt(t('desc'))||'';await F.addDoc(F.collection(db,'reviews'),{t:v,r,x:x.slice(0,300),by:S.u.uid,name:S.me.name,at:F.serverTimestamp()});await F.updateDoc(F.doc(db,'workers',v.slice(2)),{rs:F.increment(r),rc:F.increment(1)});toast(t('thanks'));render()},
- rep:async v=>{if(!ok())return;const x=prompt(t('why'));if(!x)return;await F.addDoc(F.collection(db,'reports'),{t:v,by:S.u.uid,x:x.slice(0,300),at:F.serverTimestamp()});toast(t('thanks'))},
- free:()=>{const f=!S.w.free;navigator.geolocation?.getCurrentPosition(async p=>{await F.updateDoc(F.doc(db,'workers',S.u.uid),{free:f,lat:p.coords.latitude,lng:p.coords.longitude});S.w.free=f;render()},async()=>{await F.updateDoc(F.doc(db,'workers',S.u.uid),{free:f});S.w.free=f;render()})}
+import { auth, db } from "./firebase.js";
+import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { collection, query, where, getDocs, addDoc, doc, setDoc, getDoc, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// type, icon, EN, BN  (no ride/transport type exists anywhere in the platform)
+const TYPES = [
+ ["product","🛍","Shop","পণ্য কিনুন"],["delivery","🛵","Delivery","ডেলিভারি"],["helper","🤝","Helper","সাহায্য নিন"],
+ ["job","💼","Jobs","চাকরি"],["service","🛠","Services","সেবা"],["post","👥","Community","কমিউনিটি"],
+ ["donation","💝","Donate","দান"],["blood","🩸","Blood","রক্তদান"],["lost","🔎","Lost & Found","হারানো-প্রাপ্তি"],["problem","📍","Local issues","স্থানীয় সমস্যা"]];
+const CREATE = [["product","Sell product","পণ্য বিক্রি করুন"],["helper","Request helper","হেল্পার চান"],["job","Post job","চাকরি দিন"],["service","Offer service","সেবা দিন"],["post","Community post","কমিউনিটি পোস্ট"],["donation","Donation request","দানের অনুরোধ"],["problem","Report local problem","স্থানীয় সমস্যা জানান"]];
+const L = {
+ en:{hi:"Hello",tag:"Everything Around You, Connected.",search:"Search anything near you…",home:"Home",explore:"Explore",inbox:"Inbox",profile:"Profile",create:"Create",nearby:"Latest near you",none:"Nothing here yet. Be the first to post.",nonot:"No notifications yet.",login:"Log in",signup:"Create account",name:"Full name",email:"Email",pass:"Password (6+ characters)",area:"Area / city",title:"Title",desc:"Details",price:"Price or pay (optional)",publish:"Publish",cancel:"Cancel",published:"Published",out:"Log out",dark:"Dark mode",lang:"বাংলা",all:"All",mine:"My posts",verify:"Verify email to publish",menu:"Menu",loc:"Choose your area",ph:"Your area",about:"MAVYQO connects local people, shops, services and communities.",type:"Type",sent:"Verification email sent"},
+ bn:{hi:"হ্যালো",tag:"আপনার চারপাশের সবকিছু, একসাথে।",search:"কাছাকাছি যেকোনো কিছু খুঁজুন…",home:"হোম",explore:"এক্সপ্লোর",inbox:"ইনবক্স",profile:"প্রোফাইল",create:"তৈরি",nearby:"আপনার কাছের সাম্প্রতিক",none:"এখনো কিছু নেই। প্রথম পোস্টটি আপনিই করুন।",nonot:"এখনো কোনো নোটিফিকেশন নেই।",login:"লগ ইন",signup:"অ্যাকাউন্ট খুলুন",name:"পুরো নাম",email:"ইমেইল",pass:"পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)",area:"এলাকা / শহর",title:"শিরোনাম",desc:"বিস্তারিত",price:"দাম বা মজুরি (ঐচ্ছিক)",publish:"প্রকাশ করুন",cancel:"বাতিল",published:"প্রকাশিত হয়েছে",out:"লগ আউট",dark:"ডার্ক মোড",lang:"English",all:"সব",mine:"আমার পোস্ট",verify:"পোস্ট করতে ইমেইল যাচাই করুন",menu:"মেনু",loc:"আপনার এলাকা বাছাই করুন",ph:"আপনার এলাকা",about:"MAVYQO স্থানীয় মানুষ, দোকান, সেবা ও কমিউনিটিকে এক জায়গায় যুক্ত করে।",type:"ধরন",sent:"যাচাইয়ের ইমেইল পাঠানো হয়েছে"}
 };
-document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&b.tagName!='SELECT'&&act[b.dataset.a])act[b.dataset.a](b.dataset.v,b,e)});
-document.addEventListener('change',e=>{const b=e.target;if(b.tagName=='SELECT'&&b.dataset.a)act[b.dataset.a](b.value,b,e)});
-document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target,d=Object.fromEntries(new FormData(f));
- if(f.id=='sf'){S.q=$('#q').value;S.r=S.r.includes(':')||S.r=='explore'?S.r:'p:shop';shell();return render()}
- if(f.id=='au'){const up=e.submitter.dataset.v=='up';try{if(up){S.pend={name:d.name||d.email.split('@')[0],area:d.area};const c=await A.createUserWithEmailAndPassword(auth,d.email,d.pass);A.sendEmailVerification(c.user)}else await A.signInWithEmailAndPassword(auth,d.email,d.pass)}catch(x){toast(x.code)}return}
- const ty=f.dataset.ty,bt=f.querySelector('button');bt.disabled=1;
- try{await S.u.reload();await S.u.getIdToken(true);if(ty=='work'){const[n,s]=await Promise.all([img(f.nidf.files[0],1200,.6,350000),img(f.selfie.files[0],700)]);await F.setDoc(F.doc(db,'kyc',S.u.uid),{uid:S.u.uid,nid:d.nid,nidImg:n,selfie:s});S.w={uid:S.u.uid,name:S.me.name,cat:d.cat,phone:d.phone,bio:d.bio.slice(0,300),area:S.area,status:'pending',free:false,rs:0,rc:0};await F.setDoc(F.doc(db,'workers',S.u.uid),S.w);toast(t('pending'))}
- else{const fs=[...(f.im?.files||[])].slice(0,4);if(ty=='shop'&&!fs.length){bt.disabled=0;return toast(t('needimg'))}const imgs=await Promise.all(fs.map(x=>img(x)));
-  const txt=d.title+' '+d.desc,st=bad.test(txt)?'rejected':(/https?:|www\./i.test(txt)||(ty=='shop'&&+d.price>500000))?'pending':'approved';
-  if(st=='rejected'){bt.disabled=0;return toast(t('rejected'))}
-  await F.addDoc(F.collection(db,'posts'),{type:ty,title:d.title,desc:d.desc,price:d.price||'',bg:d.bg||'',phone:d.phone||'',imgs,area:S.area,uid:S.u.uid,uname:S.me.name,status:st,at:F.serverTimestamp()});toast(t(st=='approved'?'posted':'pending'))}
- $('#m')?.remove();render()}catch(x){console.error(x);toast((x.code||'')+' '+(x.message||'').slice(0,140));bt.disabled=0}});
-A.onAuthStateChanged(auth,async u=>{if(!u){S.u=null;return authV()}S.u=u;const r=F.doc(db,'users',u.uid);let s=await F.getDoc(r);
- if(!s.exists()){await F.setDoc(r,{name:S.pend?.name||u.email.split('@')[0],area:S.pend?.area||S.area,at:F.serverTimestamp()});s=await F.getDoc(r)}
- S.me=s.data();if(S.me.banned){await A.signOut(auth);return toast(t('banned'))}S.area=S.me.area||S.area;const w=await F.getDoc(F.doc(db,'workers',u.uid));S.w=w.exists()?w.data():null;shell();render()});
-addEventListener('beforeinstallprompt',e=>{e.preventDefault();S.ip=e});
-if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
-</script></body></html>
+const S = { tab:"home", filter:"all", q:"", user:null, items:[], notes:[], lang:localStorage.lang||"en", theme:localStorage.theme||"light", area:localStorage.area||"Rangpur", authMode:"login", err:"", ov:null };
+const t = k => L[S.lang][k] || k;
+const tn = r => S.lang==="bn" ? r[3] : r[2];
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $ = s => document.querySelector(s);
+const toast = m => { const d=document.createElement("div"); d.className="toast"; d.textContent=m; document.body.append(d); setTimeout(()=>d.remove(),2200); };
+
+async function load(){
+  try{
+    const s = await getDocs(query(collection(db,"listings"),where("status","==","active"),limit(100)));
+    S.items = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    const n = await getDocs(collection(db,"users",S.user.uid,"notifications"));
+    S.notes = n.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){ toast(e.code||"Load failed"); }
+  render();
+}
+const icon = ty => TYPES.find(x=>x[0]===ty)?.[1]||"•";
+const label = ty => { const r=TYPES.find(x=>x[0]===ty); return r?tn(r):ty; };
+const card = i => `<div class="card"><span class="tag">${icon(i.type)} ${esc(label(i.type))}</span><div><b>${esc(i.title)}</b></div><div>${esc(i.desc)}</div><small>📍 ${esc(i.area)}${i.price?` · ${esc(i.price)}`:""}</small></div>`;
+const list = arr => arr.length ? arr.map(card).join("") : `<div class="empty">${t("none")}</div>`;
+const match = i => (!S.q || (i.title+i.desc+i.area).toLowerCase().includes(S.q.toLowerCase()));
+
+function home(){
+  const near = S.items.filter(i=>i.area?.toLowerCase()===S.area.toLowerCase()&&match(i));
+  return `<div class="hero"><div class="bar"><button class="ib" data-a="drawer" aria-label="${t("menu")}">☰</button><button class="chip" data-a="area">📍 ${esc(S.area)} ▾</button><span class="sp"></span></div>
+  <h1>${t("hi")}, ${esc(S.user.displayName||"")}!</h1><div>${t("tag")}</div>
+  <input class="search" id="q" placeholder="${t("search")}" value="${esc(S.q)}" aria-label="${t("search")}"></div>
+  <div class="grid">${TYPES.map(r=>`<button class="tile" data-a="go" data-t="${r[0]}"><b>${r[1]}</b>${esc(tn(r))}</button>`).join("")}</div>
+  <div class="sec"><h2>${t("nearby")}</h2>${list(near.slice(0,8))}</div>`;
+}
+function explore(){
+  const f = S.items.filter(i=>(S.filter==="all"||i.type===S.filter)&&match(i));
+  return `<div class="hero"><h1>${t("explore")}</h1><input class="search" id="q" placeholder="${t("search")}" value="${esc(S.q)}" aria-label="${t("search")}"></div>
+  <div class="row"><button data-a="f" data-t="all" class="${S.filter==="all"?"on":""}">${t("all")}</button>${TYPES.map(r=>`<button data-a="f" data-t="${r[0]}" class="${S.filter===r[0]?"on":""}">${r[1]} ${esc(tn(r))}</button>`).join("")}</div>
+  <div class="sec">${list(f)}</div>`;
+}
+function inbox(){
+  return `<div class="hero"><h1>${t("inbox")}</h1></div><div class="sec" style="margin-top:12px">${S.notes.length?S.notes.map(n=>`<div class="card"><b>${esc(n.title)}</b><div>${esc(n.body)}</div></div>`).join(""):`<div class="empty">${t("nonot")}</div>`}</div>`;
+}
+function profile(){
+  const mine = S.items.filter(i=>i.owner===S.user.uid);
+  return `<div class="hero"><h1>${esc(S.user.displayName||"")}</h1><div>${esc(S.user.email)} ${S.user.emailVerified?"✔":""}</div></div>
+  <div class="sec"><div class="card"><button class="btn alt" data-a="theme">${t("dark")}</button><br><br><button class="btn alt" data-a="lang">${t("lang")}</button><br><br><button class="btn" data-a="out">${t("out")}</button></div>
+  <h2>${t("mine")}</h2>${list(mine)}</div>`;
+}
+function authView(){
+  const su = S.authMode==="signup";
+  return `<div class="auth"><h1 style="font-size:34px">MAVYQO</h1><p>${t("tag")}</p>
+  ${su?`<label for="n">${t("name")}</label><input id="n" autocomplete="name">`:""}
+  <label for="e">${t("email")}</label><input id="e" type="email" autocomplete="email">
+  <label for="p">${t("pass")}</label><input id="p" type="password" autocomplete="${su?"new-password":"current-password"}">
+  <div class="err" role="alert">${esc(S.err)}</div><br>
+  <button class="btn" data-a="auth">${su?t("signup"):t("login")}</button><br><br>
+  <button class="btn alt" data-a="mode">${su?t("login"):t("signup")}</button><br><br><button class="btn alt" data-a="lang">${t("lang")}</button></div>`;
+}
+function overlay(){
+  if(S.ov==="create") return `<div class="ov" data-a="close"><div class="sheet" role="dialog"><h3>${t("create")}</h3>${CREATE.map(r=>`<button class="it" data-a="new" data-t="${r[0]}">${icon(r[0])} ${S.lang==="bn"?r[2]:r[1]}</button>`).join("")}</div></div>`;
+  if(S.ov==="area") return `<div class="ov" data-a="close"><div class="sheet" role="dialog"><h3>${t("loc")}</h3><input id="ar" placeholder="${t("ph")}" value="${esc(S.area)}"><br><br><button class="btn" data-a="setarea">OK</button></div></div>`;
+  if(S.ov?.form) return `<div class="ov"><div class="sheet" role="dialog"><h3>${icon(S.ov.form)} ${esc(label(S.ov.form))}</h3>
+  <label for="ty">${t("type")}</label><select id="ty">${TYPES.map(r=>`<option value="${r[0]}" ${r[0]===S.ov.form?"selected":""}>${esc(tn(r))}</option>`).join("")}</select>
+  <label for="ti">${t("title")}</label><input id="ti" maxlength="120"><label for="de">${t("desc")}</label><textarea id="de" rows="3" maxlength="800"></textarea>
+  <label for="ae">${t("area")}</label><input id="ae" value="${esc(S.area)}" maxlength="80"><label for="pr">${t("price")}</label><input id="pr" maxlength="40">
+  <div class="err" role="alert">${esc(S.err)}</div><br><button class="btn" data-a="pub">${t("publish")}</button><br><br><button class="btn alt" data-a="close">${t("cancel")}</button></div></div>`;
+  return "";
+}
+function drawer(){
+  const items = [["home","🏠",t("home")],["explore","🧭",t("explore")],...TYPES.filter(r=>r[0]!=="problem").map(r=>[r[0],r[1],tn(r)])];
+  return `<div class="ov" data-a="close" style="align-items:stretch;justify-content:flex-start"><div class="drawer"><h2 style="margin-bottom:2px">MAVYQO</h2><small>${t("tag")}</small><br><br>
+  ${items.map(i=>`<button data-a="dgo" data-t="${i[0]}">${i[1]} ${esc(i[2])}</button>`).join("")}<hr style="opacity:.2;margin:10px 0">
+  <button data-a="theme">🌓 ${t("dark")}</button><button data-a="lang">🌐 ${t("lang")}</button><button data-a="out">🚪 ${t("out")}</button><p style="opacity:.7;font-size:13px;padding:8px">${t("about")}</p></div></div>`;
+}
+function render(){
+  document.documentElement.dataset.theme = S.theme; document.documentElement.lang = S.lang;
+  const app = $("#app");
+  if(!S.user){ app.innerHTML = authView(); return; }
+  const v = {home,explore,inbox,profile}[S.tab]();
+  const nb = (k,i)=>`<button data-a="tab" data-t="${k}" class="${S.tab===k?"on":""}"><span style="font-size:20px">${i}</span>${t(k)}</button>`;
+  app.innerHTML = v + `<nav>${nb("home","🏠")}${nb("explore","🧭")}<button class="plus" data-a="create" aria-label="${t("create")}">+</button>${nb("inbox","💬")}${nb("profile","👤")}</nav>` + (S.ov==="drawer"?drawer():overlay());
+  const q = $("#q"); if(q){ q.oninput = e=>{ S.q=e.target.value; clearTimeout(S._d); S._d=setTimeout(()=>{ const p=e.target.selectionStart; render(); const n=$("#q"); n.focus(); n.setSelectionRange(p,p); },250); }; }
+}
+
+document.addEventListener("click", async e=>{
+  const el = e.target.closest("[data-a]"); if(!el) return;
+  if(el.classList.contains("ov") && e.target!==el) return;
+  const a=el.dataset.a, ty=el.dataset.t;
+  if(a==="tab"){ S.tab=ty; S.ov=null; }
+  else if(a==="go"){ S.tab="explore"; S.filter=ty; }
+  else if(a==="dgo"){ S.ov=null; if(["home","explore"].includes(ty)){S.tab=ty;S.filter="all";} else {S.tab="explore";S.filter=ty;} }
+  else if(a==="f") S.filter=ty;
+  else if(a==="drawer") S.ov="drawer";
+  else if(a==="create") S.ov="create";
+  else if(a==="area") S.ov="area";
+  else if(a==="close") S.ov=null;
+  else if(a==="new"){ S.ov={form:ty}; S.err=""; }
+  else if(a==="setarea"){ S.area=$("#ar").value.trim()||S.area; localStorage.area=S.area; S.ov=null; }
+  else if(a==="theme"){ S.theme=S.theme==="dark"?"light":"dark"; localStorage.theme=S.theme; }
+  else if(a==="lang"){ S.lang=S.lang==="en"?"bn":"en"; localStorage.lang=S.lang; }
+  else if(a==="mode"){ S.authMode=S.authMode==="login"?"signup":"login"; S.err=""; }
+  else if(a==="out"){ S.ov=null; await signOut(auth); return; }
+  else if(a==="auth"){
+    const em=$("#e").value.trim(), pw=$("#p").value;
+    try{
+      if(S.authMode==="signup"){
+        const nm=$("#n").value.trim(); if(!nm){ S.err=t("name"); return render(); }
+        const c = await createUserWithEmailAndPassword(auth,em,pw); await updateProfile(c.user,{displayName:nm});
+        await setDoc(doc(db,"users",c.user.uid),{name:nm,email:em,role:"user",createdAt:serverTimestamp()});
+        await sendEmailVerification(c.user); toast(t("sent"));
+      } else await signInWithEmailAndPassword(auth,em,pw);
+      S.err="";
+    }catch(x){ S.err=x.code?.replace("auth/","").replaceAll("-"," ")||"Error"; render(); } return;
+  }
+  else if(a==="pub"){
+    if(!S.user.emailVerified){ await S.user.reload(); if(!S.user.emailVerified){ S.err=t("verify"); return render(); } }
+    const d={type:$("#ty").value,title:$("#ti").value.trim(),desc:$("#de").value.trim(),area:$("#ae").value.trim(),price:$("#pr").value.trim(),owner:S.user.uid,ownerName:S.user.displayName||"",status:"active",createdAt:serverTimestamp()};
+    if(!d.title||!d.area){ S.err=`${t("title")}, ${t("area")}`; return render(); }
+    try{ await addDoc(collection(db,"listings"),d); S.ov=null; toast(t("published")); await load(); return; }
+    catch(x){ S.err=x.code||"Error"; return render(); }
+  }
+  render();
+});
+onAuthStateChanged(auth, u=>{ S.user=u; S.tab="home"; if(u) load(); else render(); });
+render();
+</script>
+</body>
+</html>
