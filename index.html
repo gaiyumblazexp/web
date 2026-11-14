@@ -74,7 +74,7 @@ document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target
  if(f.id=='sf'){S.q=$('#q').value;S.r=S.r.includes(':')||S.r=='explore'?S.r:'p:shop';shell();return render()}
  if(f.id=='au'){const up=e.submitter.dataset.v=='up';try{if(up){S.pend={name:d.name||d.email.split('@')[0],area:d.area};const c=await A.createUserWithEmailAndPassword(auth,d.email,d.pass);A.sendEmailVerification(c.user)}else await A.signInWithEmailAndPassword(auth,d.email,d.pass)}catch(x){toast(x.code)}return}
  const ty=f.dataset.ty,bt=f.querySelector('button');bt.disabled=1;
- try{if(ty=='work'){const[n,s]=await Promise.all([img(f.nidf.files[0],1200),img(f.selfie.files[0],700)]);await F.setDoc(F.doc(db,'kyc',S.u.uid),{uid:S.u.uid,nid:d.nid,nidImg:n,selfie:s});S.w={uid:S.u.uid,name:S.me.name,cat:d.cat,phone:d.phone,bio:d.bio.slice(0,300),area:S.area,status:'pending',free:false,rs:0,rc:0};await F.setDoc(F.doc(db,'workers',S.u.uid),S.w);toast(t('pending'))}
+ try{await S.u.reload();await S.u.getIdToken(true);if(ty=='work'){const[n,s]=await Promise.all([img(f.nidf.files[0],1200,.6,350000),img(f.selfie.files[0],700)]);await F.setDoc(F.doc(db,'kyc',S.u.uid),{uid:S.u.uid,nid:d.nid,nidImg:n,selfie:s});S.w={uid:S.u.uid,name:S.me.name,cat:d.cat,phone:d.phone,bio:d.bio.slice(0,300),area:S.area,status:'pending',free:false,rs:0,rc:0};await F.setDoc(F.doc(db,'workers',S.u.uid),S.w);toast(t('pending'))}
  else{const fs=[...(f.im?.files||[])].slice(0,4);if(ty=='shop'&&!fs.length){bt.disabled=0;return toast(t('needimg'))}const imgs=await Promise.all(fs.map(x=>img(x)));
   const txt=d.title+' '+d.desc,st=bad.test(txt)?'rejected':(/https?:|www\./i.test(txt)||(ty=='shop'&&+d.price>500000))?'pending':'approved';
   if(st=='rejected'){bt.disabled=0;return toast(t('rejected'))}
