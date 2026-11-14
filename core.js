@@ -69,4 +69,4 @@ export const t=k=>D[k]?D[k][L=='bn'?0:1]:k;
 export const $=(s,e=document)=>e.querySelector(s);
 export const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const bad=/(scam|fake|casino|porn|gambling|প্রতারণা|জুয়া|ভুয়া|পর্ন)/i;
-export const img=(f,m=900,q=.6)=>new Promise(r=>{const i=new Image;i.onload=()=>{const k=Math.min(1,m/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);r(c.toDataURL('image/jpeg',q))};i.src=URL.createObjectURL(f)});
+export const img=(f,m=800,q=.6,cap=200000)=>new Promise(r=>{const i=new Image;i.onload=()=>{let k=Math.min(1,m/Math.max(i.width,i.height)),o;for(;;){const c=document.createElement('canvas');c.width=Math.max(1,i.width*k);c.height=Math.max(1,i.height*k);c.getContext('2d').drawImage(i,0,0,c.width,c.height);o=c.toDataURL('image/jpeg',q);if(o.length<=cap||k<.2)break;k*=.8;q=Math.max(.4,q-.05)}r(o)};i.src=URL.createObjectURL(f)});
