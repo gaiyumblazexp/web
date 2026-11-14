@@ -60,6 +60,7 @@ input,select,textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px
 <script type="module">
 import { auth, db } from "./firebase.js";
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import * as X from "./modules.js";
 import { collection, query, where, getDocs, addDoc, doc, setDoc, getDoc, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // type, icon, EN, BN  (no ride/transport type exists anywhere in the platform)
@@ -90,7 +91,8 @@ async function load(){
 }
 const icon = ty => TYPES.find(x=>x[0]===ty)?.[1]||"•";
 const label = ty => { const r=TYPES.find(x=>x[0]===ty); return r?tn(r):ty; };
-const card = i => `<div class="card"><span class="tag">${icon(i.type)} ${esc(label(i.type))}</span><div><b>${esc(i.title)}</b></div><div>${esc(i.desc)}</div><small>📍 ${esc(i.area)}${i.price?` · ${esc(i.price)}`:""}</small></div>`;
+const card = i => `<div class="card">${X.safeImg(i.img)?`<img src="${esc(i.img)}" alt="" style="width:100%;border-radius:12px;margin-bottom:8px">`:""}<span class="tag">${icon(i.type)} ${esc(label(i.type))}</span><div><b>${esc(i.title)}</b></div><div>${esc(i.desc)}</div><small>📍 ${esc(i.area)}${i.price?` · ${esc(i.price)}`:""}</small>${i.owner&&i.owner!==S.user?.uid?`<div style="margin-top:8px;display:flex;gap:8px"><button class="btn alt" data-a="x:chat:start" data-o="${esc(i.owner)}" data-n="${esc(i.ownerName)}">💬 Message</button>${i.type==="product"&&parseFloat(i.price)>0?`<button class="btn" data-a="x:market:add" data-id="${i.id}">🛒 Add</button>`:""}</div>`:""}</div>`;
+const ctx = () => ({S,esc,toast,render,t});
 const list = arr => arr.length ? arr.map(card).join("") : `<div class="empty">${t("none")}</div>`;
 const match = i => (!S.q || (i.title+i.desc+i.area).toLowerCase().includes(S.q.toLowerCase()));
 
@@ -133,12 +135,12 @@ function overlay(){
   if(S.ov?.form) return `<div class="ov"><div class="sheet" role="dialog"><h3>${icon(S.ov.form)} ${esc(label(S.ov.form))}</h3>
   <label for="ty">${t("type")}</label><select id="ty">${TYPES.map(r=>`<option value="${r[0]}" ${r[0]===S.ov.form?"selected":""}>${esc(tn(r))}</option>`).join("")}</select>
   <label for="ti">${t("title")}</label><input id="ti" maxlength="120"><label for="de">${t("desc")}</label><textarea id="de" rows="3" maxlength="800"></textarea>
-  <label for="ae">${t("area")}</label><input id="ae" value="${esc(S.area)}" maxlength="80"><label for="pr">${t("price")}</label><input id="pr" maxlength="40">
+  <label for="ae">${t("area")}</label><input id="ae" value="${esc(S.area)}" maxlength="80"><label for="pr">${t("price")}</label><input id="pr" maxlength="40"><label for="im">Photo (optional)</label><input id="im" type="file" accept="image/*"><label><input type="checkbox" id="pin" style="width:auto"> Pin my approximate location on the map</label>
   <div class="err" role="alert">${esc(S.err)}</div><br><button class="btn" data-a="pub">${t("publish")}</button><br><br><button class="btn alt" data-a="close">${t("cancel")}</button></div></div>`;
   return "";
 }
 function drawer(){
-  const items = [["home","🏠",t("home")],["explore","🧭",t("explore")],...TYPES.filter(r=>r[0]!=="problem").map(r=>[r[0],r[1],tn(r)])];
+  const items = [["home","🏠",t("home")],["explore","🧭",t("explore")],...TYPES.filter(r=>r[0]!=="problem").map(r=>[r[0],r[1],tn(r)]),...Object.entries(X.views).map(([k,v])=>[k,v.icon,v.label[S.lang==="bn"?1:0]])];
   return `<div class="ov" data-a="close" style="align-items:stretch;justify-content:flex-start"><div class="drawer"><h2 style="margin-bottom:2px">MAVYQO</h2><small>${t("tag")}</small><br><br>
   ${items.map(i=>`<button data-a="dgo" data-t="${i[0]}">${i[1]} ${esc(i[2])}</button>`).join("")}<hr style="opacity:.2;margin:10px 0">
   <button data-a="theme">🌓 ${t("dark")}</button><button data-a="lang">🌐 ${t("lang")}</button><button data-a="out">🚪 ${t("out")}</button><p style="opacity:.7;font-size:13px;padding:8px">${t("about")}</p></div></div>`;
@@ -147,19 +149,20 @@ function render(){
   document.documentElement.dataset.theme = S.theme; document.documentElement.lang = S.lang;
   const app = $("#app");
   if(!S.user){ app.innerHTML = authView(); return; }
-  const v = {home,explore,inbox,profile}[S.tab]();
+  const ext = X.views[S.tab]; const v = ext ? ext.render(ctx()) : {home,explore,inbox,profile}[S.tab]();
   const nb = (k,i)=>`<button data-a="tab" data-t="${k}" class="${S.tab===k?"on":""}"><span style="font-size:20px">${i}</span>${t(k)}</button>`;
   app.innerHTML = v + `<nav>${nb("home","🏠")}${nb("explore","🧭")}<button class="plus" data-a="create" aria-label="${t("create")}">+</button>${nb("inbox","💬")}${nb("profile","👤")}</nav>` + (S.ov==="drawer"?drawer():overlay());
-  const q = $("#q"); if(q){ q.oninput = e=>{ S.q=e.target.value; clearTimeout(S._d); S._d=setTimeout(()=>{ const p=e.target.selectionStart; render(); const n=$("#q"); n.focus(); n.setSelectionRange(p,p); },250); }; }
+  if(ext?.after) ext.after(ctx()); const q = $("#q"); if(q){ q.oninput = e=>{ S.q=e.target.value; clearTimeout(S._d); S._d=setTimeout(()=>{ const p=e.target.selectionStart; render(); const n=$("#q"); n.focus(); n.setSelectionRange(p,p); },250); }; }
 }
 
 document.addEventListener("click", async e=>{
   const el = e.target.closest("[data-a]"); if(!el) return;
   if(el.classList.contains("ov") && e.target!==el) return;
   const a=el.dataset.a, ty=el.dataset.t;
+  if(a.startsWith("x:")){ const [,mod,act]=a.split(":"); try{ if(await X.views[mod].on(act,el,ctx())==="skip") return; }catch(x){ toast(x.message||x.code||"Error"); } render(); return; }
   if(a==="tab"){ S.tab=ty; S.ov=null; }
   else if(a==="go"){ S.tab="explore"; S.filter=ty; }
-  else if(a==="dgo"){ S.ov=null; if(["home","explore"].includes(ty)){S.tab=ty;S.filter="all";} else {S.tab="explore";S.filter=ty;} }
+  else if(a==="dgo"){ S.ov=null; if(X.views[ty]){ S.tab=ty; try{ await X.views[ty].init?.(ctx()); }catch(x){ toast(x.code||"Load failed"); } } else if(["home","explore"].includes(ty)){S.tab=ty;S.filter="all";} else {S.tab="explore";S.filter=ty;} }
   else if(a==="f") S.filter=ty;
   else if(a==="drawer") S.ov="drawer";
   else if(a==="create") S.ov="create";
@@ -185,7 +188,8 @@ document.addEventListener("click", async e=>{
   }
   else if(a==="pub"){
     if(!S.user.emailVerified){ await S.user.reload(); if(!S.user.emailVerified){ S.err=t("verify"); return render(); } }
-    const d={type:$("#ty").value,title:$("#ti").value.trim(),desc:$("#de").value.trim(),area:$("#ae").value.trim(),price:$("#pr").value.trim(),owner:S.user.uid,ownerName:S.user.displayName||"",status:"active",createdAt:serverTimestamp()};
+    let img="",lat=null,lng=null; try{ const f=$("#im").files[0]; if(f) img=await X.uploadImage(f); if($("#pin").checked){ const p=await new Promise((ok,no)=>navigator.geolocation.getCurrentPosition(ok,no)); lat=+p.coords.latitude.toFixed(3); lng=+p.coords.longitude.toFixed(3); } }catch(x){ S.err=x.message||"Error"; return render(); }
+    const d={...(img?{img}:{}),...(lat!==null?{lat,lng}:{}),type:$("#ty").value,title:$("#ti").value.trim(),desc:$("#de").value.trim(),area:$("#ae").value.trim(),price:$("#pr").value.trim(),owner:S.user.uid,ownerName:S.user.displayName||"",status:"active",createdAt:serverTimestamp()};
     if(!d.title||!d.area){ S.err=`${t("title")}, ${t("area")}`; return render(); }
     try{ await addDoc(collection(db,"listings"),d); S.ov=null; toast(t("published")); await load(); return; }
     catch(x){ S.err=x.code||"Error"; return render(); }
