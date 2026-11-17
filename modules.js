@@ -14,6 +14,7 @@ const val = id => document.getElementById(id)?.value.trim() || "";
 const FEES = { grocery: 80, parcel: 70, document: 60, queue: 100, errand: 80, food: 60, shop: 50 };
 const GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 
+export const hasPhone = x => /[0-9০-৯][0-9০-৯\s.\-]{7,}[0-9০-৯]/.test(x || "");
 export const safeImg = u => (typeof u === "string" && u.startsWith("https://res.cloudinary.com/")) ? u : "";
 export async function uploadImage(file) {
   if (!CLOUDINARY.cloud || !CLOUDINARY.preset) throw new Error("Image upload is not configured (see firebase.js)");
@@ -36,14 +37,14 @@ export const views = {
       const m = new Map(); [...ids(a), ...ids(b)].forEach(o => m.set(o.id, o));
       M.orders = [...m.values()].sort(byNew);
     },
-    render({ S, esc }) {
+    render({ S, esc, pcard }) {
       const ct = cart(), total = ct.reduce((s, i) => s + i.price * i.qty, 0);
       const prods = S.items.filter(i => i.type === "product");
       return `<div class="hero"><h1>${esc(S.lang === "bn" ? "মার্কেটপ্লেস" : "Marketplace")}</h1></div><div class="sec">
       <h2>🛒 Cart</h2>${ct.length ? ct.map(i => `<div class="card"><b>${esc(i.title)}</b><br>৳${i.price} × ${i.qty} <button class="btn alt" style="width:auto;padding:4px 12px" data-a="x:market:rm" data-id="${esc(i.id)}">Remove</button></div>`).join("") +
         `<label for="addr">Delivery address</label><input id="addr" maxlength="200"><p><b>Total ৳${total}</b> · Cash on delivery</p><button class="btn" data-a="x:market:checkout">Place order</button>` : `<div class="empty">Your cart is empty.</div>`}
       <h2>Orders</h2>${M.orders.length ? M.orders.map(o => `<div class="card"><span class="tag">${esc(o.status)}</span> <small>${o.buyer === uid() ? "You bought" : "You sold"}</small>${o.items.map(i => `<div>${esc(i.title)} × ${i.qty}</div>`).join("")}<small>৳${o.total} · ${esc(o.address)}</small>${o.sellerIds.includes(uid()) && !["delivered", "cancelled"].includes(o.status) ? `<div style="margin-top:8px"><button class="btn alt" data-a="x:market:st" data-id="${o.id}" data-s="${o.status === "placed" ? "confirmed" : o.status === "confirmed" ? "shipped" : "delivered"}">Mark ${o.status === "placed" ? "confirmed" : o.status === "confirmed" ? "shipped" : "delivered"}</button></div>` : ""}</div>`).join("") : `<div class="empty">No orders yet.</div>`}
-      <h2>Products</h2>${prods.length ? prods.map(i => `<div class="card">${safeImg(i.img) ? `<img src="${esc(i.img)}" alt="" style="width:100%;border-radius:12px;margin-bottom:8px">` : ""}<b>${esc(i.title)}</b><div>${esc(i.desc)}</div><small>৳${esc(i.price || "—")} · ${esc(i.area)}</small>${i.owner !== uid() && num(i.price) > 0 ? `<div style="margin-top:8px"><button class="btn" data-a="x:market:add" data-id="${i.id}">Add to cart</button></div>` : ""}</div>`).join("") : `<div class="empty">No products yet.</div>`}</div>`;
+      <h2>Products</h2>${prods.length ? `<div class="pg">${prods.map(pcard).join("")}</div>` : `<div class="empty">No products yet.</div>`}</div>`;
     },
     async on(a, el, c) {
       let ct = cart();
@@ -118,36 +119,55 @@ export const views = {
     }
   },
 
-  /* ---------------- Chat with text + images ---------------- */
+  /* ---------------- Chat (marketplace style, one thread per listing) ---------------- */
   chat: {
     icon: "💬", label: ["Chats", "চ্যাট"],
+    full: () => !!M.cur,
     async init() { M.chats = ids(await getDocs(query(collection(db, "chats"), where("members", "array-contains", uid())))).sort(byNew); },
     render({ S, esc }) {
       const u = uid();
-      if (!M.cur) return `<div class="hero"><h1>${S.lang === "bn" ? "চ্যাট" : "Chats"}</h1></div><div class="sec" style="margin-top:12px">${M.chats.length ? M.chats.map(ch => { const other = ch.members.find(m => m !== u); return `<button class="card" style="width:100%;text-align:left" data-a="x:chat:open" data-id="${ch.id}"><b>${esc(ch.names?.[other] || "User")}</b><br><small>${esc(ch.last || "")}</small></button>`; }).join("") : `<div class="empty">No chats yet. Open a listing and tap Message.</div>`}</div>`;
-      const ch = M.chats.find(x => x.id === M.cur) || {}, blocked = (ch.blockedBy || []).length > 0;
-      return `<div class="hero"><div class="bar"><button class="ib" data-a="x:chat:back" aria-label="Back">←</button><h1 style="margin:0">${esc(ch.names?.[ch.members?.find(m => m !== u)] || "Chat")}</h1><span class="sp"></span><button class="chip" data-a="x:chat:report">Report</button><button class="chip" data-a="x:chat:block">Block</button></div></div>
-      <div class="sec" style="margin-top:12px">${M.msgs.map(m => `<div class="card" style="margin-left:${m.from === u ? "36px" : "0"};margin-right:${m.from === u ? "0" : "36px"}">${m.img && safeImg(m.img) ? `<img src="${esc(m.img)}" alt="" style="width:100%;border-radius:12px">` : ""}${esc(m.text)}</div>`).join("") || `<div class="empty">Say hello.</div>`}
-      ${blocked ? `<div class="empty">This chat is blocked.</div>` : `<input id="msg" placeholder="Message" maxlength="1000" value="${esc(M.draft)}"><br><br><input id="mi" type="file" accept="image/*"><br><br><button class="btn" data-a="x:chat:send">Send</button>`}</div>`;
+      const av = (n, z = 46) => `<span style="width:${z}px;height:${z}px;border-radius:50%;background:var(--grad);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex:none">${esc((n || "?")[0].toUpperCase())}</span>`;
+      const who = ch => ch.names?.[ch.members.find(m => m !== u)] || "User";
+      const tm = ts => ts ? new Date(ts.seconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+      const thumb = l => safeImg(l?.img) ? `<img src="${esc(l.img)}" alt="" style="width:44px;height:44px;border-radius:10px;object-fit:cover">` : `<span style="width:44px;height:44px;border-radius:10px;background:var(--line);display:inline-flex;align-items:center;justify-content:center">🛍</span>`;
+      if (!M.cur) return `<div class="hero"><h1>${S.lang === "bn" ? "চ্যাট" : "Chats"}</h1></div><div style="margin-top:8px">${M.chats.length ? M.chats.map(ch => `<button data-a="x:chat:open" data-id="${ch.id}" style="display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:12px 16px;border-bottom:1px solid var(--line)">${av(who(ch))}<span style="flex:1;min-width:0"><b>${esc(who(ch))}</b>${ch.listing ? ` <small style="color:var(--mut)">· ${esc(ch.listing.title)}</small>` : ""}<small style="display:block;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ch.last || "Say hello 👋")}</small></span><small style="color:var(--mut)">${tm(ch.updatedAt)}</small></button>`).join("") : `<div class="empty">No chats yet.<br>Open any listing and tap Message.</div>`}</div>`;
+      const ch = M.chats.find(x => x.id === M.cur) || { members: [u], names: {} }, blocked = (ch.blockedBy || []).length > 0;
+      const quick = ["Is this still available?", "What's your lowest price?", "Where can we meet?"];
+      return `<div style="position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) 12px 8px">
+        <div class="bar"><button data-a="x:chat:back" aria-label="Back" style="font-size:24px">←</button>${av(who(ch), 38)}<b style="flex:1">${esc(who(ch))}</b><button data-a="x:chat:report" aria-label="Report" style="font-size:20px">⚑</button><button data-a="x:chat:block" aria-label="Block" style="font-size:20px">🚫</button></div>
+        ${ch.listing ? `<div style="display:flex;gap:10px;align-items:center;margin-top:8px">${thumb(ch.listing)}<span><b>${esc(ch.listing.title)}</b><br><small style="color:var(--mut)">${ch.listing.price ? "৳" + esc(ch.listing.price) : ""}</small></span></div>` : ""}</div>
+      <div style="padding:12px 14px 110px">${M.msgs.map(m => `<div class="bub ${m.from === u ? "me" : "th"}">${m.img && safeImg(m.img) ? `<img src="${esc(m.img)}" alt="">` : ""}${esc(m.text)}</div>`).join("") || (blocked ? "" : `<div class="empty">Start the conversation</div>${quick.map(q => `<button class="qk" data-a="x:chat:quick" data-m="${esc(q)}">${esc(q)}</button>`).join("")}`)}</div>
+      ${blocked ? `<div class="empty" style="position:fixed;bottom:0;left:0;right:0">This chat is blocked.</div>` : `<div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center"><label style="font-size:26px;cursor:pointer" aria-label="Photo">📷<input id="mi" type="file" accept="image/*" hidden></label><input id="msg" placeholder="Message…" maxlength="1000" autocomplete="off" value="${esc(M.draft)}" style="border-radius:99px"><button data-a="x:chat:send" aria-label="Send" style="width:44px;height:44px;border-radius:50%;background:var(--grad);color:#fff;font-size:18px;flex:none">➤</button></div>`}`;
     },
-    after() { const i = document.getElementById("msg"); if (i) i.oninput = e => M.draft = e.target.value; },
+    after(c) {
+      const go = () => views.chat.on("send", null, c).then(r => { if (r !== "skip") c.render(); }).catch(x => c.toast(x.message || x.code));
+      const i = document.getElementById("msg"); if (i) { i.oninput = e => M.draft = e.target.value; i.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } }; }
+      const f = document.getElementById("mi"); if (f) f.onchange = go;
+      if (M.cur) window.scrollTo(0, document.body.scrollHeight);
+    },
+    async send(text, img) {
+      await addDoc(collection(db, "chats", M.cur, "messages"), { from: uid(), text, img: img || "", at: serverTimestamp() });
+      await updateDoc(doc(db, "chats", M.cur), { last: text || "📷 Photo", updatedAt: serverTimestamp() });
+    },
     async on(a, el, c) {
       const u = uid();
       if (a === "start") {
         const o = el.dataset.o; if (!o || o === u) return;
-        const id = [u, o].sort().join("_");
-        await setDoc(doc(db, "chats", id), { members: [u, o].sort(), names: { [u]: auth.currentUser.displayName || "", [o]: el.dataset.n || "" }, updatedAt: serverTimestamp() }, { merge: true });
-        c.S.tab = "chat"; await this.init(); return this.on("open", { dataset: { id } }, c);
+        const l = el.dataset.l || "direct", id = [u, o].sort().join("_") + "_" + l, ref = doc(db, "chats", id);
+        const ex = await getDoc(ref);
+        await setDoc(ref, { members: [u, o].sort(), names: { [u]: auth.currentUser.displayName || "", [o]: el.dataset.n || "" }, ...(el.dataset.l ? { listing: { id: l, title: el.dataset.lt || "", img: el.dataset.li || "", price: el.dataset.lp || "" } } : {}), updatedAt: serverTimestamp() }, { merge: true });
+        c.S.tab = "chat"; c.S.ov = null; await this.init(); await this.on("open", { dataset: { id } }, c);
+        if (!ex.exists() && el.dataset.m) { M.cur = id; await this.send(el.dataset.m); }
+        return;
       }
       if (a === "open") {
-        M.cur = el.dataset.id; M.msgs = []; M.unsub?.();
-        M.unsub = onSnapshot(query(collection(db, "chats", M.cur, "messages"), orderBy("at"), limit(100)), s => { M.msgs = ids(s); if (c.S.tab === "chat") c.render(); });
+        M.cur = el.dataset.id; M.msgs = []; M.draft = ""; M.unsub?.();
+        M.unsub = onSnapshot(query(collection(db, "chats", M.cur, "messages"), orderBy("at"), limit(100)), s => { M.msgs = ids(s); if (c.S.tab === "chat") c.render(); }, e => c.toast(e.code));
       } else if (a === "back") { M.unsub?.(); M.cur = null; await this.init(); }
+      else if (a === "quick") await this.send(el.dataset.m);
       else if (a === "send") {
         const text = val("msg"), f = document.getElementById("mi")?.files[0]; if (!text && !f) return "skip";
-        const img = f ? await uploadImage(f) : "";
-        await addDoc(collection(db, "chats", M.cur, "messages"), { from: u, text, img, at: serverTimestamp() });
-        await updateDoc(doc(db, "chats", M.cur), { last: text || "📷", updatedAt: serverTimestamp() }); M.draft = "";
+        const img = f ? await uploadImage(f) : ""; M.draft = ""; await this.send(text, img);
       } else if (a === "block") { await updateDoc(doc(db, "chats", M.cur), { blockedBy: arrayUnion(u) }); await this.init(); c.toast("Blocked"); }
       else if (a === "report") { const r = prompt("What is the problem?"); if (r) { await addDoc(collection(db, "reports"), { by: u, kind: "chat", target: M.cur, reason: r.slice(0, 300), status: "open", createdAt: serverTimestamp() }); c.toast("Report sent"); } }
     }
@@ -160,17 +180,16 @@ export const views = {
       const u = uid();
       const [d, r, m] = await Promise.all([getDocs(query(collection(db, "donors"), where("available", "==", true))), getDocs(query(collection(db, "bloodRequests"), where("status", "==", "open"))), getDoc(doc(db, "donors", u))]);
       M.donors = ids(d); M.reqs = ids(r).sort(byNew); M.mine = m.exists() ? m.data() : null; M.resp = {};
-      for (const q of M.reqs.filter(x => x.requester === u)) M.resp[q.id] = ids(await getDocs(collection(db, "bloodRequests", q.id, "responses")));
     },
     render({ S, esc }) {
       const u = uid(), opt = g => GROUPS.map(x => `<option ${x === g ? "selected" : ""}>${x}</option>`).join("");
       return `<div class="hero"><h1>${S.lang === "bn" ? "রক্তদান" : "Blood network"}</h1></div><div class="sec">
       <div class="card"><small>MAVYQO only connects people. Medical compatibility and eligibility must be confirmed by a qualified professional.</small></div>
       <h2>Request blood</h2><div class="card"><label for="bg">Blood group</label><select id="bg">${opt()}</select><label for="ba">Area</label><input id="ba" value="${esc(S.area)}" maxlength="80"><label for="bn">Note</label><input id="bn" maxlength="200"><br><br><button class="btn" data-a="x:blood:req">Post request</button></div>
-      <h2>Open requests</h2>${M.reqs.length ? M.reqs.map(r => `<div class="card"><span class="tag">🩸 ${esc(r.group)}</span> <b>${esc(r.area)}</b><div>${esc(r.note)}</div>${r.requester === u ? `${(M.resp[r.id] || []).map(x => `<div>✅ ${esc(x.name)} — ${esc(x.contact)}</div>`).join("") || "<small>No responses yet.</small>"}<br><button class="btn alt" data-a="x:blood:close" data-id="${r.id}">Close request</button>` : (M.mine?.available ? `<button class="btn" data-a="x:blood:help" data-id="${r.id}">I can help</button>` : "")}</div>`).join("") : `<div class="empty">No open requests.</div>`}
+      <h2>Open requests</h2>${M.reqs.length ? M.reqs.map(r => `<div class="card"><span class="tag">🩸 ${esc(r.group)}</span> <b>${esc(r.area)}</b><div>${esc(r.note)}</div>${r.requester === u ? `<small>Donors will message you in Chats.</small><br><br><button class="btn alt" data-a="x:blood:close" data-id="${r.id}">Close request</button>` : (M.mine?.available ? `<button class="btn" data-a="x:chat:start" data-o="${esc(r.requester)}" data-n="${esc(r.name)}" data-m="Hi, I may be able to donate ${esc(r.group)} blood. Is it still needed?">💬 I can help — message</button>` : "")}</div>`).join("") : `<div class="empty">No open requests.</div>`}
       <h2>Donor registration</h2><div class="card"><label for="dg">Blood group</label><select id="dg">${opt(M.mine?.group)}</select><label for="da">Area</label><input id="da" value="${esc(M.mine?.area || S.area)}" maxlength="80">
       <label><input type="checkbox" id="dav" style="width:auto" ${M.mine?.available ? "checked" : ""}> Available to donate</label>
-      <label><input type="checkbox" id="dco" style="width:auto" ${M.mine?.consent ? "checked" : ""}> I agree to show my blood group, area and availability to signed-in members. My contact is never shown unless I choose to reply to a request.</label><br><button class="btn" data-a="x:blood:save">Save donor profile</button></div>
+      <label><input type="checkbox" id="dco" style="width:auto" ${M.mine?.consent ? "checked" : ""}> I agree to show my blood group, area and availability to signed-in members. My phone number is never shown; people reach me only through chat.</label><br><button class="btn" data-a="x:blood:save">Save donor profile</button></div>
       <h2>Available donors</h2>${M.donors.length ? M.donors.map(d => `<div class="card"><span class="tag">🩸 ${esc(d.group)}</span> ${esc(d.name)} · ${esc(d.area)}</div>`).join("") : `<div class="empty">No donors listed yet.</div>`}</div>`;
     },
     async on(a, el, c) {
@@ -180,10 +199,8 @@ export const views = {
         await setDoc(doc(db, "donors", u), { name: auth.currentUser.displayName || "", group: val("dg"), area: val("da"), available: document.getElementById("dav").checked, consent: true, updatedAt: serverTimestamp() }); c.toast("Saved");
       } else if (a === "req") {
         if (!val("ba")) throw new Error("Enter an area");
+        if (hasPhone(val("bn"))) throw new Error("Phone numbers can't be posted. Use chat.");
         await addDoc(collection(db, "bloodRequests"), { requester: u, name: auth.currentUser.displayName || "", group: val("bg"), area: val("ba"), note: val("bn"), status: "open", createdAt: serverTimestamp() }); c.toast("Request posted");
-      } else if (a === "help") {
-        const contact = prompt("Phone or contact to share with the requester (only they will see it)"); if (!contact) return "skip";
-        await setDoc(doc(db, "bloodRequests", el.dataset.id, "responses", u), { donor: u, name: auth.currentUser.displayName || "", contact: contact.slice(0, 60), createdAt: serverTimestamp() }); c.toast("Sent to requester");
       } else if (a === "close") await updateDoc(doc(db, "bloodRequests", el.dataset.id), { status: "closed" });
       await this.init(c);
     }
