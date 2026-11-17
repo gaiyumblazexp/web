@@ -52,6 +52,20 @@ input,select,textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px
 .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:99px;z-index:20}
 .auth{padding:40px 22px}
 .err{color:#d7263d;font-size:14px;margin-top:8px}
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.pc{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.pc>button.v{text-align:left;display:block;width:100%}
+.pc .im{aspect-ratio:1;background:var(--line) center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-size:42px}
+.pc .bd{padding:8px 10px}
+.pc .nm{font-size:14px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:36px}
+.pc .pr{font-weight:700;color:var(--blue);font-size:17px}
+.pc small{color:var(--mut);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc .add{margin:0 10px 10px;padding:8px;border-radius:10px;background:var(--grad);color:#fff;font-size:13px;font-weight:700}
+.bub{max-width:78%;padding:9px 13px;border-radius:18px;margin:4px 0;word-wrap:break-word;width:fit-content}
+.bub.me{margin-left:auto;background:var(--grad);color:#fff;border-bottom-right-radius:6px}
+.bub.th{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:6px}
+.bub img{width:100%;border-radius:12px;display:block}
+.qk{display:inline-block;margin:4px 6px 4px 0;padding:8px 14px;border-radius:99px;border:1px solid var(--blue);color:var(--blue)}
 @media(prefers-reduced-motion:no-preference){.sheet,.drawer{animation:up .22s ease-out}@keyframes up{from{transform:translateY(24px);opacity:0}}}
 </style>
 </head>
@@ -61,7 +75,7 @@ input,select,textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px
 import { auth, db } from "./firebase.js";
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import * as X from "./modules.js";
-import { collection, query, where, getDocs, addDoc, doc, setDoc, getDoc, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, query, where, getDocs, addDoc, doc, setDoc, getDoc, serverTimestamp, limit, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // type, icon, EN, BN  (no ride/transport type exists anywhere in the platform)
 const TYPES = [
@@ -91,24 +105,29 @@ async function load(){
 }
 const icon = ty => TYPES.find(x=>x[0]===ty)?.[1]||"•";
 const label = ty => { const r=TYPES.find(x=>x[0]===ty); return r?tn(r):ty; };
-const card = i => `<div class="card">${X.safeImg(i.img)?`<img src="${esc(i.img)}" alt="" style="width:100%;border-radius:12px;margin-bottom:8px">`:""}<span class="tag">${icon(i.type)} ${esc(label(i.type))}</span><div><b>${esc(i.title)}</b></div><div>${esc(i.desc)}</div><small>📍 ${esc(i.area)}${i.price?` · ${esc(i.price)}`:""}</small>${i.owner&&i.owner!==S.user?.uid?`<div style="margin-top:8px;display:flex;gap:8px"><button class="btn alt" data-a="x:chat:start" data-o="${esc(i.owner)}" data-n="${esc(i.ownerName)}">💬 Message</button>${i.type==="product"&&parseFloat(i.price)>0?`<button class="btn" data-a="x:market:add" data-id="${i.id}">🛒 Add</button>`:""}</div>`:""}</div>`;
-const ctx = () => ({S,esc,toast,render,t});
+const mineBtns = i => i.owner===S.user?.uid ? `<div style="margin-top:8px;display:flex;gap:8px"><button class="btn alt" data-a="edit" data-id="${i.id}">✏️ Edit</button><button class="btn alt" data-a="del" data-id="${i.id}">🗑 Delete</button></div>` : "";
+const card = i => `<div class="card">${X.safeImg(i.img)?`<img src="${esc(i.img)}" alt="" style="width:100%;border-radius:12px;margin-bottom:8px">`:""}<span class="tag">${icon(i.type)} ${esc(label(i.type))}</span><div><b>${esc(i.title)}</b></div><div>${esc(i.desc)}</div><small>📍 ${esc(i.area)}${i.price?` · ${esc(i.price)}`:""}</small>${mineBtns(i)}${i.owner&&i.owner!==S.user?.uid?`<div style="margin-top:8px"><button class="btn alt" data-a="x:chat:start" data-o="${esc(i.owner)}" data-n="${esc(i.ownerName)}" data-l="${i.id}" data-lt="${esc(i.title)}" data-li="${esc(i.img||"")}" data-lp="${esc(i.price||"")}">💬 Message</button></div>`:""}</div>`;
+const pcard = i => `<div class="pc"><button class="v" data-a="view" data-id="${i.id}"><div class="im" ${X.safeImg(i.img)?`style="background-image:url('${esc(i.img)}')"`:""}>${X.safeImg(i.img)?"":"🛍"}</div><div class="bd"><div class="nm">${esc(i.title)}</div><div class="pr">${i.price?`৳${esc(i.price)}`:""}</div><small>📍 ${esc(i.area)}</small></div></button>${i.owner!==S.user?.uid&&parseFloat(i.price)>0?`<button class="add" data-a="x:market:add" data-id="${i.id}">🛒 ${S.lang==="bn"?"কার্টে যোগ":"Add to cart"}</button>`:""}</div>`;
+const pgrid = a => a.length ? `<div class="pg">${a.map(pcard).join("")}</div>` : "";
+const ctx = () => ({S,esc,toast,render,t,pcard});
 const list = arr => arr.length ? arr.map(card).join("") : `<div class="empty">${t("none")}</div>`;
 const match = i => (!S.q || (i.title+i.desc+i.area).toLowerCase().includes(S.q.toLowerCase()));
 
 function home(){
-  const near = S.items.filter(i=>i.area?.toLowerCase()===S.area.toLowerCase()&&match(i));
+  const sameA = i=>i.area?.toLowerCase()===S.area.toLowerCase();
+  const prods = S.items.filter(i=>i.type==="product"&&match(i)).sort((a,b)=>sameA(b)-sameA(a));
+  const near = S.items.filter(i=>i.type!=="product"&&sameA(i)&&match(i));
   return `<div class="hero"><div class="bar"><button class="ib" data-a="drawer" aria-label="${t("menu")}">☰</button><button class="chip" data-a="area">📍 ${esc(S.area)} ▾</button><span class="sp"></span></div>
   <h1>${t("hi")}, ${esc(S.user.displayName||"")}!</h1><div>${t("tag")}</div>
   <input class="search" id="q" placeholder="${t("search")}" value="${esc(S.q)}" aria-label="${t("search")}"></div>
   <div class="grid">${TYPES.map(r=>`<button class="tile" data-a="go" data-t="${r[0]}"><b>${r[1]}</b>${esc(tn(r))}</button>`).join("")}</div>
-  <div class="sec"><h2>${t("nearby")}</h2>${list(near.slice(0,8))}</div>`;
+  <div class="sec"><h2>🛍 ${S.lang==="bn"?"জনপ্রিয় পণ্য":"Popular products"}</h2>${pgrid(prods.slice(0,12))||`<div class="empty">${t("none")}</div>`}<h2>${t("nearby")}</h2>${near.length?near.slice(0,8).map(card).join(""):`<div class="empty">${t("none")}</div>`}</div>`;
 }
 function explore(){
   const f = S.items.filter(i=>(S.filter==="all"||i.type===S.filter)&&match(i));
   return `<div class="hero"><h1>${t("explore")}</h1><input class="search" id="q" placeholder="${t("search")}" value="${esc(S.q)}" aria-label="${t("search")}"></div>
   <div class="row"><button data-a="f" data-t="all" class="${S.filter==="all"?"on":""}">${t("all")}</button>${TYPES.map(r=>`<button data-a="f" data-t="${r[0]}" class="${S.filter===r[0]?"on":""}">${r[1]} ${esc(tn(r))}</button>`).join("")}</div>
-  <div class="sec">${list(f)}</div>`;
+  <div class="sec">${f.length?"":`<div class="empty">${t("none")}</div>`}${pgrid(f.filter(i=>i.type==="product"))}${f.filter(i=>i.type!=="product").map(card).join("")}</div>`;
 }
 function inbox(){
   return `<div class="hero"><h1>${t("inbox")}</h1></div><div class="sec" style="margin-top:12px">${S.notes.length?S.notes.map(n=>`<div class="card"><b>${esc(n.title)}</b><div>${esc(n.body)}</div></div>`).join(""):`<div class="empty">${t("nonot")}</div>`}</div>`;
@@ -130,12 +149,18 @@ function authView(){
   <button class="btn alt" data-a="mode">${su?t("login"):t("signup")}</button><br><br><button class="btn alt" data-a="lang">${t("lang")}</button></div>`;
 }
 function overlay(){
+  const E = S.ov?.edit ? S.items.find(i=>i.id===S.ov.edit) : null;
+  if(S.ov?.view){
+    const i = S.items.find(x=>x.id===S.ov.view); if(!i){ S.ov=null; return ""; }
+    const mine = i.owner===S.user.uid;
+    return `<div class="ov" data-a="close"><div class="sheet" role="dialog">${X.safeImg(i.img)?`<img src="${esc(i.img)}" alt="" style="width:100%;border-radius:14px">`:""}<div style="font-size:24px;font-weight:700;color:var(--blue);margin-top:8px">${i.price?`৳${esc(i.price)}`:""}</div><h3>${esc(i.title)}</h3><p>${esc(i.desc)}</p><small>📍 ${esc(i.area)} · ${esc(i.ownerName)}</small><br><br>${mine?`<button class="btn alt" data-a="edit" data-id="${i.id}">✏️ Edit</button><br><br><button class="btn alt" data-a="del" data-id="${i.id}">🗑 Delete</button>`:`${i.type==="product"&&parseFloat(i.price)>0?`<button class="btn" data-a="x:market:add" data-id="${i.id}">🛒 ${S.lang==="bn"?"কার্টে যোগ করুন":"Add to cart"}</button><br><br>`:""}<button class="btn alt" data-a="x:chat:start" data-o="${esc(i.owner)}" data-n="${esc(i.ownerName)}" data-l="${i.id}" data-lt="${esc(i.title)}" data-li="${esc(i.img||"")}" data-lp="${esc(i.price||"")}">💬 ${S.lang==="bn"?"বিক্রেতাকে মেসেজ":"Message seller"}</button>`}</div></div>`;
+  }
   if(S.ov==="create") return `<div class="ov" data-a="close"><div class="sheet" role="dialog"><h3>${t("create")}</h3>${CREATE.map(r=>`<button class="it" data-a="new" data-t="${r[0]}">${icon(r[0])} ${S.lang==="bn"?r[2]:r[1]}</button>`).join("")}</div></div>`;
   if(S.ov==="area") return `<div class="ov" data-a="close"><div class="sheet" role="dialog"><h3>${t("loc")}</h3><input id="ar" placeholder="${t("ph")}" value="${esc(S.area)}"><br><br><button class="btn" data-a="setarea">OK</button></div></div>`;
   if(S.ov?.form) return `<div class="ov"><div class="sheet" role="dialog"><h3>${icon(S.ov.form)} ${esc(label(S.ov.form))}</h3>
   <label for="ty">${t("type")}</label><select id="ty">${TYPES.map(r=>`<option value="${r[0]}" ${r[0]===S.ov.form?"selected":""}>${esc(tn(r))}</option>`).join("")}</select>
-  <label for="ti">${t("title")}</label><input id="ti" maxlength="120"><label for="de">${t("desc")}</label><textarea id="de" rows="3" maxlength="800"></textarea>
-  <label for="ae">${t("area")}</label><input id="ae" value="${esc(S.area)}" maxlength="80"><label for="pr">${t("price")}</label><input id="pr" maxlength="40"><label for="im">Photo (optional)</label><input id="im" type="file" accept="image/*"><label><input type="checkbox" id="pin" style="width:auto"> Pin my approximate location on the map</label>
+  <label for="ti">${t("title")}</label><input id="ti" maxlength="120" value="${esc(E?.title)}"><label for="de">${t("desc")}</label><textarea id="de" rows="3" maxlength="800">${esc(E?.desc)}</textarea>
+  <label for="ae">${t("area")}</label><input id="ae" value="${esc(E?.area||S.area)}" maxlength="80"><label for="pr">${t("price")}</label><input id="pr" maxlength="40" value="${esc(E?.price)}"><label for="im">Photo ${E?"(leave empty to keep current)":"(optional)"}</label><input id="im" type="file" accept="image/*"><label><input type="checkbox" id="pin" style="width:auto"> Pin my approximate location on the map</label>
   <div class="err" role="alert">${esc(S.err)}</div><br><button class="btn" data-a="pub">${t("publish")}</button><br><br><button class="btn alt" data-a="close">${t("cancel")}</button></div></div>`;
   return "";
 }
@@ -151,7 +176,7 @@ function render(){
   if(!S.user){ app.innerHTML = authView(); return; }
   const ext = X.views[S.tab]; const v = ext ? ext.render(ctx()) : {home,explore,inbox,profile}[S.tab]();
   const nb = (k,i)=>`<button data-a="tab" data-t="${k}" class="${S.tab===k?"on":""}"><span style="font-size:20px">${i}</span>${t(k)}</button>`;
-  app.innerHTML = v + `<nav>${nb("home","🏠")}${nb("explore","🧭")}<button class="plus" data-a="create" aria-label="${t("create")}">+</button>${nb("inbox","💬")}${nb("profile","👤")}</nav>` + (S.ov==="drawer"?drawer():overlay());
+  app.innerHTML = v + (ext?.full?.()?"":`<nav>${nb("home","🏠")}${nb("explore","🧭")}<button class="plus" data-a="create" aria-label="${t("create")}">+</button>${nb("inbox","💬")}${nb("profile","👤")}</nav>`) + (S.ov==="drawer"?drawer():overlay());
   if(ext?.after) ext.after(ctx()); const q = $("#q"); if(q){ q.oninput = e=>{ S.q=e.target.value; clearTimeout(S._d); S._d=setTimeout(()=>{ const p=e.target.selectionStart; render(); const n=$("#q"); n.focus(); n.setSelectionRange(p,p); },250); }; }
 }
 
@@ -186,13 +211,27 @@ document.addEventListener("click", async e=>{
       S.err="";
     }catch(x){ S.err=x.code?.replace("auth/","").replaceAll("-"," ")||"Error"; render(); } return;
   }
+  else if(a==="view") S.ov={view:el.dataset.id};
+  else if(a==="edit"){ const i=S.items.find(x=>x.id===el.dataset.id); if(i){ S.ov={form:i.type,edit:i.id}; S.err=""; } }
+  else if(a==="del"){
+    if(confirm(S.lang==="bn"?"পোস্টটি মুছে ফেলবেন?":"Delete this post?")){
+      try{ await deleteDoc(doc(db,"listings",el.dataset.id)); S.ov=null; toast(S.lang==="bn"?"মুছে ফেলা হয়েছে":"Deleted"); await load(); return; }catch(x){ toast(x.code||"Error"); }
+    }
+  }
   else if(a==="pub"){
     if(!S.user.emailVerified){ await S.user.reload(); if(!S.user.emailVerified){ S.err=t("verify"); return render(); } }
-    let img="",lat=null,lng=null; try{ const f=$("#im").files[0]; if(f) img=await X.uploadImage(f); if($("#pin").checked){ const p=await new Promise((ok,no)=>navigator.geolocation.getCurrentPosition(ok,no)); lat=+p.coords.latitude.toFixed(3); lng=+p.coords.longitude.toFixed(3); } }catch(x){ S.err=x.message||"Error"; return render(); }
-    const d={...(img?{img}:{}),...(lat!==null?{lat,lng}:{}),type:$("#ty").value,title:$("#ti").value.trim(),desc:$("#de").value.trim(),area:$("#ae").value.trim(),price:$("#pr").value.trim(),owner:S.user.uid,ownerName:S.user.displayName||"",status:"active",createdAt:serverTimestamp()};
-    if(!d.title||!d.area){ S.err=`${t("title")}, ${t("area")}`; return render(); }
-    try{ await addDoc(collection(db,"listings"),d); S.ov=null; toast(t("published")); await load(); return; }
-    catch(x){ S.err=x.code||"Error"; return render(); }
+    const ed=S.ov.edit;
+    const f0={type:$("#ty").value,title:$("#ti").value.trim(),desc:$("#de").value.trim(),area:$("#ae").value.trim(),price:$("#pr").value.trim()};
+    if(!f0.title||!f0.area){ S.err=`${t("title")}, ${t("area")}`; return render(); }
+    if(X.hasPhone(f0.title+"|"+f0.desc)){ S.err="Phone numbers can't be posted publicly. Buyers contact you through chat."; return render(); }
+    let img="",lat=null,lng=null;
+    try{ const f=$("#im").files[0]; if(f) img=await X.uploadImage(f); if($("#pin").checked){ const p=await new Promise((ok,no)=>navigator.geolocation.getCurrentPosition(ok,no)); lat=+p.coords.latitude.toFixed(3); lng=+p.coords.longitude.toFixed(3); } }catch(x){ S.err=x.message||"Error"; return render(); }
+    const extra={...(img?{img}:{}),...(lat!==null?{lat,lng}:{})};
+    try{
+      if(ed) await updateDoc(doc(db,"listings",ed),{...f0,...extra});
+      else await addDoc(collection(db,"listings"),{...f0,...extra,owner:S.user.uid,ownerName:S.user.displayName||"",status:"active",createdAt:serverTimestamp()});
+      S.ov=null; toast(t("published")); await load(); return;
+    }catch(x){ S.err=x.code||"Error"; return render(); }
   }
   render();
 });
