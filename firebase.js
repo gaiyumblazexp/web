@@ -20,4 +20,4 @@ export const db = getFirestore(app);
 
 // Image uploads use Cloudinary's free tier (Firebase Storage now needs a paid plan).
 // Fill both values after creating an UNSIGNED upload preset in Cloudinary. Leave empty to disable uploads.
-export const CLOUDINARY = { cloud: "", preset: "" };
+export const CLOUDINARY = { cloud: "eulhhqi0", preset: "gaivex_upload" };
