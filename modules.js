@@ -15,11 +15,20 @@ const FEES = { grocery: 80, parcel: 70, document: 60, queue: 100, errand: 80, fo
 const GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 
 export const hasPhone = x => /[0-9০-৯][0-9০-৯\s.\-]{7,}[0-9০-৯]/.test(x || "");
+// Smaller, faster images: Cloudinary resizes on delivery.
+export const tr = (u, w) => safeImg(u).replace("/upload/", `/upload/q_auto,f_auto,w_${w}/`);
+async function shrink(file) {
+  if (file.type === "image/gif") return file;
+  const b = await createImageBitmap(file), k = Math.min(1, 1280 / Math.max(b.width, b.height));
+  const c = document.createElement("canvas"); c.width = Math.round(b.width * k); c.height = Math.round(b.height * k);
+  c.getContext("2d").drawImage(b, 0, 0, c.width, c.height);
+  return new Promise(r => c.toBlob(r, "image/jpeg", 0.82));
+}
 export const safeImg = u => (typeof u === "string" && u.startsWith("https://res.cloudinary.com/")) ? u : "";
 export async function uploadImage(file) {
   if (!CLOUDINARY.cloud || !CLOUDINARY.preset) throw new Error("Image upload is not configured (see firebase.js)");
-  if (!file.type.startsWith("image/") || file.size > 5e6) throw new Error("Choose an image under 5 MB");
-  const f = new FormData(); f.append("file", file); f.append("upload_preset", CLOUDINARY.preset);
+  if (!file.type.startsWith("image/") || file.size > 12e6) throw new Error("Choose an image under 12 MB");
+  const f = new FormData(); f.append("file", await shrink(file), "photo.jpg"); f.append("upload_preset", CLOUDINARY.preset);
   const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloud}/image/upload`, { method: "POST", body: f });
   if (!r.ok) throw new Error("Upload failed");
   return (await r.json()).secure_url;
@@ -37,20 +46,22 @@ export const views = {
       const m = new Map(); [...ids(a), ...ids(b)].forEach(o => m.set(o.id, o));
       M.orders = [...m.values()].sort(byNew);
     },
-    render({ S, esc, pcard }) {
+    render({ S, esc, pcard, pfilter, fbar }) {
       const ct = cart(), total = ct.reduce((s, i) => s + i.price * i.qty, 0);
-      const prods = S.items.filter(i => i.type === "product");
+      const sold = M.orders.filter(o => o.sellerIds.includes(uid()));
+      const rev = sold.filter(o => o.status === "delivered").reduce((s, o) => s + o.items.filter(i => i.seller === uid()).reduce((a, i) => a + i.price * i.qty, 0), 0);
+      const prods = pfilter(S.items.filter(i => i.type === "product"));
       return `<div class="hero"><h1>${esc(S.lang === "bn" ? "মার্কেটপ্লেস" : "Marketplace")}</h1></div><div class="sec">
       <h2>🛒 Cart</h2>${ct.length ? ct.map(i => `<div class="card"><b>${esc(i.title)}</b><br>৳${i.price} × ${i.qty} <button class="btn alt" style="width:auto;padding:4px 12px" data-a="x:market:rm" data-id="${esc(i.id)}">Remove</button></div>`).join("") +
         `<label for="addr">Delivery address</label><input id="addr" maxlength="200"><p><b>Total ৳${total}</b> · Cash on delivery</p><button class="btn" data-a="x:market:checkout">Place order</button>` : `<div class="empty">Your cart is empty.</div>`}
-      <h2>Orders</h2>${M.orders.length ? M.orders.map(o => `<div class="card"><span class="tag">${esc(o.status)}</span> <small>${o.buyer === uid() ? "You bought" : "You sold"}</small>${o.items.map(i => `<div>${esc(i.title)} × ${i.qty}</div>`).join("")}<small>৳${o.total} · ${esc(o.address)}</small>${o.sellerIds.includes(uid()) && !["delivered", "cancelled"].includes(o.status) ? `<div style="margin-top:8px"><button class="btn alt" data-a="x:market:st" data-id="${o.id}" data-s="${o.status === "placed" ? "confirmed" : o.status === "confirmed" ? "shipped" : "delivered"}">Mark ${o.status === "placed" ? "confirmed" : o.status === "confirmed" ? "shipped" : "delivered"}</button></div>` : ""}</div>`).join("") : `<div class="empty">No orders yet.</div>`}
-      <h2>Products</h2>${prods.length ? `<div class="pg">${prods.map(pcard).join("")}</div>` : `<div class="empty">No products yet.</div>`}</div>`;
+      ${sold.length ? `<div class="card"><b>📊 Sales</b><br>${sold.length} orders · ৳${rev} delivered</div>` : ""}<h2>Orders</h2>${M.orders.length ? M.orders.map(o => `<div class="card"><span class="tag">${esc(o.status)}</span><div>${["placed", "confirmed", "shipped", "delivered"].map((x, k) => `<small>${k <= ["placed", "confirmed", "shipped", "delivered"].indexOf(o.status) ? "●" : "○"} ${x}</small>`).join(" — ")}</div> <small>${o.buyer === uid() ? "You bought" : "You sold"}</small>${o.items.map(i => `<div>${esc(i.title)} × ${i.qty}</div>`).join("")}<small>৳${o.total} · ${esc(o.address)}</small>${o.buyer === uid() && o.status === "delivered" ? [...new Map(o.items.map(i => [i.seller, i.sellerName])).entries()].map(([sl, n]) => `<div style="margin-top:8px"><button class="btn alt" data-a="x:market:rate" data-o="${o.id}" data-s="${esc(sl)}" data-n="${esc(n || "")}">⭐ Rate ${esc(n || "seller")}</button></div>`).join("") : ""}${o.sellerIds.includes(uid()) && !["delivered", "cancelled"].includes(o.status) ? `<div style="margin-top:8px"><button class="btn alt" data-a="x:market:st" data-id="${o.id}" data-s="${o.status === "placed" ? "confirmed" : o.status === "confirmed" ? "shipped" : "delivered"}">Mark ${o.status === "placed" ? "confirmed" : o.status === "confirmed" ? "shipped" : "delivered"}</button></div>` : ""}</div>`).join("") : `<div class="empty">No orders yet.</div>`}
+      <h2>Products</h2>${fbar()}${prods.length ? `<div class="pg">${prods.map(pcard).join("")}</div>` : `<div class="empty">No products yet.</div>`}</div>`;
     },
     async on(a, el, c) {
       let ct = cart();
       if (a === "add") {
         const p = c.S.items.find(i => i.id === el.dataset.id); if (!p) return;
-        const e = ct.find(i => i.id === p.id); e ? e.qty++ : ct.push({ id: p.id, title: p.title, price: num(p.price), qty: 1, seller: p.owner });
+        const e = ct.find(i => i.id === p.id); e ? e.qty++ : ct.push({ id: p.id, title: p.title, price: num(p.price), qty: 1, seller: p.owner, sellerName: p.ownerName || "" });
         localStorage.cart = JSON.stringify(ct); c.toast("Added to cart");
       } else if (a === "rm") { localStorage.cart = JSON.stringify(ct.filter(i => i.id !== el.dataset.id)); }
       else if (a === "checkout") {
@@ -58,6 +69,12 @@ export const views = {
         if (!ct.length) return;
         await addDoc(collection(db, "orders"), { buyer: uid(), buyerName: auth.currentUser.displayName || "", items: ct, sellerIds: [...new Set(ct.map(i => i.seller))], total: ct.reduce((s, i) => s + i.price * i.qty, 0), status: "placed", payment: "cash_on_delivery", address, createdAt: serverTimestamp() });
         localStorage.cart = "[]"; await this.init(); c.toast("Order placed");
+      } else if (a === "rate") {
+        const r = parseInt(prompt("Rating 1 to 5"), 10); if (!(r >= 1 && r <= 5)) return "skip";
+        const text = (prompt("Short review (optional, no phone numbers)") || "").slice(0, 300);
+        if (hasPhone(text)) throw new Error("Please don't put phone numbers in reviews");
+        await setDoc(doc(db, "reviews", el.dataset.o + "_" + el.dataset.s), { order: el.dataset.o, seller: el.dataset.s, buyer: uid(), buyerName: auth.currentUser.displayName || "", rating: r, text, createdAt: serverTimestamp() });
+        c.toast("Thanks for your review"); return "skip";
       } else if (a === "st") { await updateDoc(doc(db, "orders", el.dataset.id), { status: el.dataset.s }); await this.init(); }
     }
   },
@@ -129,14 +146,14 @@ export const views = {
       const av = (n, z = 46) => `<span style="width:${z}px;height:${z}px;border-radius:50%;background:var(--grad);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex:none">${esc((n || "?")[0].toUpperCase())}</span>`;
       const who = ch => ch.names?.[ch.members.find(m => m !== u)] || "User";
       const tm = ts => ts ? new Date(ts.seconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
-      const thumb = l => safeImg(l?.img) ? `<img src="${esc(l.img)}" alt="" style="width:44px;height:44px;border-radius:10px;object-fit:cover">` : `<span style="width:44px;height:44px;border-radius:10px;background:var(--line);display:inline-flex;align-items:center;justify-content:center">🛍</span>`;
+      const thumb = l => safeImg(l?.img) ? `<img src="${esc(tr(l.img, 120))}" alt="" style="width:44px;height:44px;border-radius:10px;object-fit:cover">` : `<span style="width:44px;height:44px;border-radius:10px;background:var(--line);display:inline-flex;align-items:center;justify-content:center">🛍</span>`;
       if (!M.cur) return `<div class="hero"><h1>${S.lang === "bn" ? "চ্যাট" : "Chats"}</h1></div><div style="margin-top:8px">${M.chats.length ? M.chats.map(ch => `<button data-a="x:chat:open" data-id="${ch.id}" style="display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:12px 16px;border-bottom:1px solid var(--line)">${av(who(ch))}<span style="flex:1;min-width:0"><b>${esc(who(ch))}</b>${ch.listing ? ` <small style="color:var(--mut)">· ${esc(ch.listing.title)}</small>` : ""}<small style="display:block;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ch.last || "Say hello 👋")}</small></span><small style="color:var(--mut)">${tm(ch.updatedAt)}</small></button>`).join("") : `<div class="empty">No chats yet.<br>Open any listing and tap Message.</div>`}</div>`;
       const ch = M.chats.find(x => x.id === M.cur) || { members: [u], names: {} }, blocked = (ch.blockedBy || []).length > 0;
       const quick = ["Is this still available?", "What's your lowest price?", "Where can we meet?"];
       return `<div style="position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) 12px 8px">
         <div class="bar"><button data-a="x:chat:back" aria-label="Back" style="font-size:24px">←</button>${av(who(ch), 38)}<b style="flex:1">${esc(who(ch))}</b><button data-a="x:chat:report" aria-label="Report" style="font-size:20px">⚑</button><button data-a="x:chat:block" aria-label="Block" style="font-size:20px">🚫</button></div>
         ${ch.listing ? `<div style="display:flex;gap:10px;align-items:center;margin-top:8px">${thumb(ch.listing)}<span><b>${esc(ch.listing.title)}</b><br><small style="color:var(--mut)">${ch.listing.price ? "৳" + esc(ch.listing.price) : ""}</small></span></div>` : ""}</div>
-      <div style="padding:12px 14px 110px">${M.msgs.map(m => `<div class="bub ${m.from === u ? "me" : "th"}">${m.img && safeImg(m.img) ? `<img src="${esc(m.img)}" alt="">` : ""}${esc(m.text)}</div>`).join("") || (blocked ? "" : `<div class="empty">Start the conversation</div>${quick.map(q => `<button class="qk" data-a="x:chat:quick" data-m="${esc(q)}">${esc(q)}</button>`).join("")}`)}</div>
+      <div style="padding:12px 14px 110px">${M.msgs.map(m => `<div class="bub ${m.from === u ? "me" : "th"}">${m.img && safeImg(m.img) ? `<img src="${esc(tr(m.img, 800))}" alt="">` : ""}${esc(m.text)}</div>`).join("") || (blocked ? "" : `<div class="empty">Start the conversation</div>${quick.map(q => `<button class="qk" data-a="x:chat:quick" data-m="${esc(q)}">${esc(q)}</button>`).join("")}`)}</div>
       ${blocked ? `<div class="empty" style="position:fixed;bottom:0;left:0;right:0">This chat is blocked.</div>` : `<div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center"><label style="font-size:26px;cursor:pointer" aria-label="Photo">📷<input id="mi" type="file" accept="image/*" hidden></label><input id="msg" placeholder="Message…" maxlength="1000" autocomplete="off" value="${esc(M.draft)}" style="border-radius:99px"><button data-a="x:chat:send" aria-label="Send" style="width:44px;height:44px;border-radius:50%;background:var(--grad);color:#fff;font-size:18px;flex:none">➤</button></div>`}`;
     },
     after(c) {
@@ -169,7 +186,7 @@ export const views = {
         const text = val("msg"), f = document.getElementById("mi")?.files[0]; if (!text && !f) return "skip";
         const img = f ? await uploadImage(f) : ""; M.draft = ""; await this.send(text, img);
       } else if (a === "block") { await updateDoc(doc(db, "chats", M.cur), { blockedBy: arrayUnion(u) }); await this.init(); c.toast("Blocked"); }
-      else if (a === "report") { const r = prompt("What is the problem?"); if (r) { await addDoc(collection(db, "reports"), { by: u, kind: "chat", target: M.cur, reason: r.slice(0, 300), status: "open", createdAt: serverTimestamp() }); c.toast("Report sent"); } }
+      else if (a === "report") { const r = prompt("What is the problem?"); if (r) { await addDoc(collection(db, "reports"), { by: u, kind: "chat", target: M.cur, targetUser: M.chats.find(x => x.id === M.cur)?.members.find(m => m !== u) || "", reason: r.slice(0, 300), status: "open", createdAt: serverTimestamp() }); c.toast("Report sent"); } }
     }
   },
 
