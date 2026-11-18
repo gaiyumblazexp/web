@@ -61,6 +61,7 @@ input,select,textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px
 .pc .pr{font-weight:700;color:var(--blue);font-size:17px}
 .pc small{color:var(--mut);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pc .add{margin:0 10px 10px;padding:8px;border-radius:10px;background:var(--grad);color:#fff;font-size:13px;font-weight:700}
+.pc{position:relative}.hrt{position:absolute;top:8px;right:8px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.92);color:#d7263d;font-size:18px}
 .bub{max-width:78%;padding:9px 13px;border-radius:18px;margin:4px 0;word-wrap:break-word;width:fit-content}
 .bub.me{margin-left:auto;background:var(--grad);color:#fff;border-bottom-right-radius:6px}
 .bub.th{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:6px}
@@ -75,7 +76,7 @@ input,select,textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px
 import { auth, db } from "./firebase.js";
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import * as X from "./modules.js";
-import { collection, query, where, getDocs, addDoc, doc, setDoc, getDoc, serverTimestamp, limit, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, query, where, getDocs, addDoc, doc, setDoc, getDoc, serverTimestamp, limit, updateDoc, deleteDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // type, icon, EN, BN  (no ride/transport type exists anywhere in the platform)
 const TYPES = [
@@ -87,17 +88,19 @@ const L = {
  en:{hi:"Hello",tag:"Everything Around You, Connected.",search:"Search anything near you…",home:"Home",explore:"Explore",inbox:"Inbox",profile:"Profile",create:"Create",nearby:"Latest near you",none:"Nothing here yet. Be the first to post.",nonot:"No notifications yet.",login:"Log in",signup:"Create account",name:"Full name",email:"Email",pass:"Password (6+ characters)",area:"Area / city",title:"Title",desc:"Details",price:"Price or pay (optional)",publish:"Publish",cancel:"Cancel",published:"Published",out:"Log out",dark:"Dark mode",lang:"বাংলা",all:"All",mine:"My posts",verify:"Verify email to publish",menu:"Menu",loc:"Choose your area",ph:"Your area",about:"MAVYQO connects local people, shops, services and communities.",type:"Type",sent:"Verification email sent"},
  bn:{hi:"হ্যালো",tag:"আপনার চারপাশের সবকিছু, একসাথে।",search:"কাছাকাছি যেকোনো কিছু খুঁজুন…",home:"হোম",explore:"এক্সপ্লোর",inbox:"ইনবক্স",profile:"প্রোফাইল",create:"তৈরি",nearby:"আপনার কাছের সাম্প্রতিক",none:"এখনো কিছু নেই। প্রথম পোস্টটি আপনিই করুন।",nonot:"এখনো কোনো নোটিফিকেশন নেই।",login:"লগ ইন",signup:"অ্যাকাউন্ট খুলুন",name:"পুরো নাম",email:"ইমেইল",pass:"পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)",area:"এলাকা / শহর",title:"শিরোনাম",desc:"বিস্তারিত",price:"দাম বা মজুরি (ঐচ্ছিক)",publish:"প্রকাশ করুন",cancel:"বাতিল",published:"প্রকাশিত হয়েছে",out:"লগ আউট",dark:"ডার্ক মোড",lang:"English",all:"সব",mine:"আমার পোস্ট",verify:"পোস্ট করতে ইমেইল যাচাই করুন",menu:"মেনু",loc:"আপনার এলাকা বাছাই করুন",ph:"আপনার এলাকা",about:"MAVYQO স্থানীয় মানুষ, দোকান, সেবা ও কমিউনিটিকে এক জায়গায় যুক্ত করে।",type:"ধরন",sent:"যাচাইয়ের ইমেইল পাঠানো হয়েছে"}
 };
-const S = { tab:"home", filter:"all", q:"", user:null, items:[], notes:[], lang:localStorage.lang||"en", theme:localStorage.theme||"light", area:localStorage.area||"Rangpur", authMode:"login", err:"", ov:null };
+const S = { tab:"home", filter:"all", lim:40, cat:"all", sort:"new", wish:new Set(), wishDocs:[], rev:{}, q:"", user:null, items:[], notes:[], lang:localStorage.lang||"en", theme:localStorage.theme||"light", area:localStorage.area||"Rangpur", authMode:"login", err:"", ov:null };
 const t = k => L[S.lang][k] || k;
 const tn = r => S.lang==="bn" ? r[3] : r[2];
 const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const $ = s => document.querySelector(s);
 const toast = m => { const d=document.createElement("div"); d.className="toast"; d.textContent=m; document.body.append(d); setTimeout(()=>d.remove(),2200); };
 
+async function loadRev(o){ if(!o||S.rev[o]) return; try{ const q=await getDocs(query(collection(db,"reviews"),where("seller","==",o),limit(20))); const l=q.docs.map(d=>d.data()); S.rev[o]={n:l.length,avg:l.length?l.reduce((a,b)=>a+b.rating,0)/l.length:0,list:l.slice(0,3)}; render(); }catch{} }
 async function load(){
   try{
-    const s = await getDocs(query(collection(db,"listings"),where("status","==","active"),limit(100)));
+    const s = await getDocs(query(collection(db,"listings"),where("status","==","active"),orderBy("createdAt","desc"),limit(S.lim)));
     S.items = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    const w = await getDocs(collection(db,"users",S.user.uid,"wishlist")); S.wishDocs = w.docs.map(d=>({id:d.id,...d.data()})); S.wish = new Set(S.wishDocs.map(x=>x.id));
     const n = await getDocs(collection(db,"users",S.user.uid,"notifications"));
     S.notes = n.docs.map(d=>({id:d.id,...d.data()}));
   }catch(e){ toast(e.code||"Load failed"); }
@@ -106,10 +109,16 @@ async function load(){
 const icon = ty => TYPES.find(x=>x[0]===ty)?.[1]||"•";
 const label = ty => { const r=TYPES.find(x=>x[0]===ty); return r?tn(r):ty; };
 const mineBtns = i => i.owner===S.user?.uid ? `<div style="margin-top:8px;display:flex;gap:8px"><button class="btn alt" data-a="edit" data-id="${i.id}">✏️ Edit</button><button class="btn alt" data-a="del" data-id="${i.id}">🗑 Delete</button></div>` : "";
-const card = i => `<div class="card">${X.safeImg(i.img)?`<img src="${esc(i.img)}" alt="" style="width:100%;border-radius:12px;margin-bottom:8px">`:""}<span class="tag">${icon(i.type)} ${esc(label(i.type))}</span><div><b>${esc(i.title)}</b></div><div>${esc(i.desc)}</div><small>📍 ${esc(i.area)}${i.price?` · ${esc(i.price)}`:""}</small>${mineBtns(i)}${i.owner&&i.owner!==S.user?.uid?`<div style="margin-top:8px"><button class="btn alt" data-a="x:chat:start" data-o="${esc(i.owner)}" data-n="${esc(i.ownerName)}" data-l="${i.id}" data-lt="${esc(i.title)}" data-li="${esc(i.img||"")}" data-lp="${esc(i.price||"")}">💬 Message</button></div>`:""}</div>`;
-const pcard = i => `<div class="pc"><button class="v" data-a="view" data-id="${i.id}"><div class="im" ${X.safeImg(i.img)?`style="background-image:url('${esc(i.img)}')"`:""}>${X.safeImg(i.img)?"":"🛍"}</div><div class="bd"><div class="nm">${esc(i.title)}</div><div class="pr">${i.price?`৳${esc(i.price)}`:""}</div><small>📍 ${esc(i.area)}</small></div></button>${i.owner!==S.user?.uid&&parseFloat(i.price)>0?`<button class="add" data-a="x:market:add" data-id="${i.id}">🛒 ${S.lang==="bn"?"কার্টে যোগ":"Add to cart"}</button>`:""}</div>`;
+const card = i => `<div class="card">${X.safeImg(i.img)?`<img src="${esc(X.tr(i.img,800))}" alt="" style="width:100%;border-radius:12px;margin-bottom:8px">`:""}<span class="tag">${icon(i.type)} ${esc(label(i.type))}</span><div><b>${esc(i.title)}</b></div><div>${esc(i.desc)}</div><small>📍 ${esc(i.area)}${i.price?` · ${esc(i.price)}`:""}</small>${mineBtns(i)}${i.owner&&i.owner!==S.user?.uid?`<div style="margin-top:8px"><button class="btn alt" data-a="x:chat:start" data-o="${esc(i.owner)}" data-n="${esc(i.ownerName)}" data-l="${i.id}" data-lt="${esc(i.title)}" data-li="${esc(i.img||"")}" data-lp="${esc(i.price||"")}">💬 Message</button></div>`:""}</div>`;
+const byId = id => S.items.find(i=>i.id===id)||S.wishDocs.find(i=>i.id===id);
+const pcard = i => `<div class="pc"><button class="hrt" data-a="wish" data-id="${i.id}" aria-label="Save">${S.wish.has(i.id)?"♥":"♡"}</button><button class="v" data-a="view" data-id="${i.id}"><div class="im" ${X.safeImg(i.img)?`style="background-image:url('${esc(X.tr(i.img,400))}')"`:""}>${X.safeImg(i.img)?"":"🛍"}</div><div class="bd"><div class="nm">${esc(i.title)}</div><div class="pr">${i.price?`৳${esc(i.price)}`:""}</div><small>📍 ${esc(i.area)}</small></div></button>${i.owner!==S.user?.uid&&parseFloat(i.price)>0?`<button class="add" data-a="x:market:add" data-id="${i.id}">🛒 ${S.lang==="bn"?"কার্টে যোগ":"Add to cart"}</button>`:""}</div>`;
+const CATS=[["all","All","সব"],["electronics","📱 Electronics","📱 ইলেকট্রনিক্স"],["fashion","👕 Fashion","👕 ফ্যাশন"],["home","🏠 Home","🏠 ঘর"],["books","📚 Books","📚 বই"],["food","🍱 Food","🍱 খাবার"],["other","📦 Other","📦 অন্যান্য"]];
+const SORTS=[["new","Newest","নতুন"],["asc","Price ↑","দাম ↑"],["desc","Price ↓","দাম ↓"]];
+const pfilter = a => { let r=a.filter(i=>S.cat==="all"||(i.cat||"other")===S.cat); const p=i=>parseFloat(i.price)||0; if(S.sort==="asc") r=[...r].sort((x,y)=>p(x)-p(y)); if(S.sort==="desc") r=[...r].sort((x,y)=>p(y)-p(x)); return r; };
+const fbar = () => `<div class="row" style="padding:4px 0">${CATS.map(c=>`<button data-a="fcat" data-t="${c[0]}" class="${S.cat===c[0]?"on":""}">${S.lang==="bn"?c[2]:c[1]}</button>`).join("")}</div><div class="row" style="padding:4px 0">${SORTS.map(c=>`<button data-a="fsort" data-t="${c[0]}" class="${S.sort===c[0]?"on":""}">${S.lang==="bn"?c[2]:c[1]}</button>`).join("")}</div>`;
+const loadMore = () => S.items.length>=S.lim?`<button class="btn alt" data-a="more">${S.lang==="bn"?"আরও দেখুন":"Load more"}</button><br><br>`:"";
 const pgrid = a => a.length ? `<div class="pg">${a.map(pcard).join("")}</div>` : "";
-const ctx = () => ({S,esc,toast,render,t,pcard});
+const ctx = () => ({S,esc,toast,render,t,pcard,pfilter,fbar});
 const list = arr => arr.length ? arr.map(card).join("") : `<div class="empty">${t("none")}</div>`;
 const match = i => (!S.q || (i.title+i.desc+i.area).toLowerCase().includes(S.q.toLowerCase()));
 
@@ -121,13 +130,13 @@ function home(){
   <h1>${t("hi")}, ${esc(S.user.displayName||"")}!</h1><div>${t("tag")}</div>
   <input class="search" id="q" placeholder="${t("search")}" value="${esc(S.q)}" aria-label="${t("search")}"></div>
   <div class="grid">${TYPES.map(r=>`<button class="tile" data-a="go" data-t="${r[0]}"><b>${r[1]}</b>${esc(tn(r))}</button>`).join("")}</div>
-  <div class="sec"><h2>🛍 ${S.lang==="bn"?"জনপ্রিয় পণ্য":"Popular products"}</h2>${pgrid(prods.slice(0,12))||`<div class="empty">${t("none")}</div>`}<h2>${t("nearby")}</h2>${near.length?near.slice(0,8).map(card).join(""):`<div class="empty">${t("none")}</div>`}</div>`;
+  <div class="sec"><h2>🛍 ${S.lang==="bn"?"জনপ্রিয় পণ্য":"Popular products"}</h2>${pgrid(prods.slice(0,12))||`<div class="empty">${t("none")}</div>`}${loadMore()}<h2>${t("nearby")}</h2>${near.length?near.slice(0,8).map(card).join(""):`<div class="empty">${t("none")}</div>`}</div>`;
 }
 function explore(){
   const f = S.items.filter(i=>(S.filter==="all"||i.type===S.filter)&&match(i));
   return `<div class="hero"><h1>${t("explore")}</h1><input class="search" id="q" placeholder="${t("search")}" value="${esc(S.q)}" aria-label="${t("search")}"></div>
   <div class="row"><button data-a="f" data-t="all" class="${S.filter==="all"?"on":""}">${t("all")}</button>${TYPES.map(r=>`<button data-a="f" data-t="${r[0]}" class="${S.filter===r[0]?"on":""}">${r[1]} ${esc(tn(r))}</button>`).join("")}</div>
-  <div class="sec">${f.length?"":`<div class="empty">${t("none")}</div>`}${pgrid(f.filter(i=>i.type==="product"))}${f.filter(i=>i.type!=="product").map(card).join("")}</div>`;
+  <div class="sec">${f.length?"":`<div class="empty">${t("none")}</div>`}${["all","product"].includes(S.filter)?fbar():""}${pgrid(pfilter(f.filter(i=>i.type==="product")))}${f.filter(i=>i.type!=="product").map(card).join("")}${loadMore()}</div>`;
 }
 function inbox(){
   return `<div class="hero"><h1>${t("inbox")}</h1></div><div class="sec" style="margin-top:12px">${S.notes.length?S.notes.map(n=>`<div class="card"><b>${esc(n.title)}</b><div>${esc(n.body)}</div></div>`).join(""):`<div class="empty">${t("nonot")}</div>`}</div>`;
@@ -136,7 +145,7 @@ function profile(){
   const mine = S.items.filter(i=>i.owner===S.user.uid);
   return `<div class="hero"><h1>${esc(S.user.displayName||"")}</h1><div>${esc(S.user.email)} ${S.user.emailVerified?"✔":""}</div></div>
   <div class="sec"><div class="card"><button class="btn alt" data-a="theme">${t("dark")}</button><br><br><button class="btn alt" data-a="lang">${t("lang")}</button><br><br><button class="btn" data-a="out">${t("out")}</button></div>
-  <h2>${t("mine")}</h2>${list(mine)}</div>`;
+  <h2>❤ ${S.lang==="bn"?"সেভ করা":"Saved"}</h2>${pgrid(S.wishDocs)||`<div class="empty">${t("none")}</div>`}<h2>${t("mine")}</h2>${list(mine)}</div>`;
 }
 function authView(){
   const su = S.authMode==="signup";
@@ -151,15 +160,15 @@ function authView(){
 function overlay(){
   const E = S.ov?.edit ? S.items.find(i=>i.id===S.ov.edit) : null;
   if(S.ov?.view){
-    const i = S.items.find(x=>x.id===S.ov.view); if(!i){ S.ov=null; return ""; }
+    const i = byId(S.ov.view); if(!i){ S.ov=null; return ""; }
     const mine = i.owner===S.user.uid;
-    return `<div class="ov" data-a="close"><div class="sheet" role="dialog">${X.safeImg(i.img)?`<img src="${esc(i.img)}" alt="" style="width:100%;border-radius:14px">`:""}<div style="font-size:24px;font-weight:700;color:var(--blue);margin-top:8px">${i.price?`৳${esc(i.price)}`:""}</div><h3>${esc(i.title)}</h3><p>${esc(i.desc)}</p><small>📍 ${esc(i.area)} · ${esc(i.ownerName)}</small><br><br>${mine?`<button class="btn alt" data-a="edit" data-id="${i.id}">✏️ Edit</button><br><br><button class="btn alt" data-a="del" data-id="${i.id}">🗑 Delete</button>`:`${i.type==="product"&&parseFloat(i.price)>0?`<button class="btn" data-a="x:market:add" data-id="${i.id}">🛒 ${S.lang==="bn"?"কার্টে যোগ করুন":"Add to cart"}</button><br><br>`:""}<button class="btn alt" data-a="x:chat:start" data-o="${esc(i.owner)}" data-n="${esc(i.ownerName)}" data-l="${i.id}" data-lt="${esc(i.title)}" data-li="${esc(i.img||"")}" data-lp="${esc(i.price||"")}">💬 ${S.lang==="bn"?"বিক্রেতাকে মেসেজ":"Message seller"}</button>`}</div></div>`;
+    return `<div class="ov" data-a="close"><div class="sheet" role="dialog">${X.safeImg(i.img)?`<img src="${esc(X.tr(i.img,800))}" alt="" style="width:100%;border-radius:14px">`:""}<div style="font-size:24px;font-weight:700;color:var(--blue);margin-top:8px">${i.price?`৳${esc(i.price)}`:""}</div><h3>${esc(i.title)}</h3><p>${esc(i.desc)}</p><small>📍 ${esc(i.area)} · ${esc(i.ownerName)}</small>${S.rev[i.owner]?.n?`<div>⭐ ${S.rev[i.owner].avg.toFixed(1)} (${S.rev[i.owner].n})</div>${S.rev[i.owner].list.map(r=>`<small style="display:block">★${r.rating} ${esc(r.text)}</small>`).join("")}`:""}<br><br>${mine?`<button class="btn alt" data-a="edit" data-id="${i.id}">✏️ Edit</button><br><br><button class="btn alt" data-a="del" data-id="${i.id}">🗑 Delete</button>`:`${i.type==="product"&&parseFloat(i.price)>0?`<button class="btn" data-a="x:market:add" data-id="${i.id}">🛒 ${S.lang==="bn"?"কার্টে যোগ করুন":"Add to cart"}</button><br><br>`:""}<button class="btn alt" data-a="x:chat:start" data-o="${esc(i.owner)}" data-n="${esc(i.ownerName)}" data-l="${i.id}" data-lt="${esc(i.title)}" data-li="${esc(i.img||"")}" data-lp="${esc(i.price||"")}">💬 ${S.lang==="bn"?"বিক্রেতাকে মেসেজ":"Message seller"}</button><br><br><button class="btn alt" data-a="rep" data-id="${i.id}">⚑ Report</button>`}</div></div>`;
   }
   if(S.ov==="create") return `<div class="ov" data-a="close"><div class="sheet" role="dialog"><h3>${t("create")}</h3>${CREATE.map(r=>`<button class="it" data-a="new" data-t="${r[0]}">${icon(r[0])} ${S.lang==="bn"?r[2]:r[1]}</button>`).join("")}</div></div>`;
   if(S.ov==="area") return `<div class="ov" data-a="close"><div class="sheet" role="dialog"><h3>${t("loc")}</h3><input id="ar" placeholder="${t("ph")}" value="${esc(S.area)}"><br><br><button class="btn" data-a="setarea">OK</button></div></div>`;
   if(S.ov?.form) return `<div class="ov"><div class="sheet" role="dialog"><h3>${icon(S.ov.form)} ${esc(label(S.ov.form))}</h3>
   <label for="ty">${t("type")}</label><select id="ty">${TYPES.map(r=>`<option value="${r[0]}" ${r[0]===S.ov.form?"selected":""}>${esc(tn(r))}</option>`).join("")}</select>
-  <label for="ti">${t("title")}</label><input id="ti" maxlength="120" value="${esc(E?.title)}"><label for="de">${t("desc")}</label><textarea id="de" rows="3" maxlength="800">${esc(E?.desc)}</textarea>
+  <label for="ct">Category</label><select id="ct">${CATS.slice(1).map(c=>`<option value="${c[0]}" ${(E?.cat||"other")===c[0]?"selected":""}>${esc(S.lang==="bn"?c[2]:c[1])}</option>`).join("")}</select><label for="ti">${t("title")}</label><input id="ti" maxlength="120" value="${esc(E?.title)}"><label for="de">${t("desc")}</label><textarea id="de" rows="3" maxlength="800">${esc(E?.desc)}</textarea>
   <label for="ae">${t("area")}</label><input id="ae" value="${esc(E?.area||S.area)}" maxlength="80"><label for="pr">${t("price")}</label><input id="pr" maxlength="40" value="${esc(E?.price)}"><label for="im">Photo ${E?"(leave empty to keep current)":"(optional)"}</label><input id="im" type="file" accept="image/*"><label><input type="checkbox" id="pin" style="width:auto"> Pin my approximate location on the map</label>
   <div class="err" role="alert">${esc(S.err)}</div><br><button class="btn" data-a="pub">${t("publish")}</button><br><br><button class="btn alt" data-a="close">${t("cancel")}</button></div></div>`;
   return "";
@@ -211,7 +220,21 @@ document.addEventListener("click", async e=>{
       S.err="";
     }catch(x){ S.err=x.code?.replace("auth/","").replaceAll("-"," ")||"Error"; render(); } return;
   }
-  else if(a==="view") S.ov={view:el.dataset.id};
+  else if(a==="view"){ S.ov={view:el.dataset.id}; render(); await loadRev(byId(el.dataset.id)?.owner); }
+  else if(a==="fcat") S.cat=ty;
+  else if(a==="fsort") S.sort=ty;
+  else if(a==="more"){ S.lim+=40; await load(); return; }
+  else if(a==="wish"){
+    const i=byId(el.dataset.id); if(i){ const ref=doc(db,"users",S.user.uid,"wishlist",i.id);
+      try{
+        if(S.wish.has(i.id)){ await deleteDoc(ref); S.wish.delete(i.id); S.wishDocs=S.wishDocs.filter(x=>x.id!==i.id); }
+        else { const d={title:i.title,price:i.price||"",img:i.img||"",area:i.area||"",owner:i.owner||"",ownerName:i.ownerName||"",type:i.type,savedAt:serverTimestamp()}; await setDoc(ref,d); S.wish.add(i.id); S.wishDocs.push({id:i.id,...d}); }
+      }catch(x){ toast(x.code||"Error"); } }
+  }
+  else if(a==="rep"){
+    const i=byId(el.dataset.id), r=prompt(S.lang==="bn"?"কেন রিপোর্ট করছেন?":"Why are you reporting this?");
+    if(i&&r){ try{ await addDoc(collection(db,"reports"),{by:S.user.uid,kind:"listing",target:i.id,targetUser:i.owner||"",reason:r.slice(0,300),status:"open",createdAt:serverTimestamp()}); toast("Report sent"); }catch(x){ toast(x.code||"Error"); } }
+  }
   else if(a==="edit"){ const i=S.items.find(x=>x.id===el.dataset.id); if(i){ S.ov={form:i.type,edit:i.id}; S.err=""; } }
   else if(a==="del"){
     if(confirm(S.lang==="bn"?"পোস্টটি মুছে ফেলবেন?":"Delete this post?")){
@@ -221,7 +244,7 @@ document.addEventListener("click", async e=>{
   else if(a==="pub"){
     if(!S.user.emailVerified){ await S.user.reload(); if(!S.user.emailVerified){ S.err=t("verify"); return render(); } }
     const ed=S.ov.edit;
-    const f0={type:$("#ty").value,title:$("#ti").value.trim(),desc:$("#de").value.trim(),area:$("#ae").value.trim(),price:$("#pr").value.trim()};
+    const f0={cat:$("#ct").value,type:$("#ty").value,title:$("#ti").value.trim(),desc:$("#de").value.trim(),area:$("#ae").value.trim(),price:$("#pr").value.trim()};
     if(!f0.title||!f0.area){ S.err=`${t("title")}, ${t("area")}`; return render(); }
     if(X.hasPhone(f0.title+"|"+f0.desc)){ S.err="Phone numbers can't be posted publicly. Buyers contact you through chat."; return render(); }
     let img="",lat=null,lng=null;
