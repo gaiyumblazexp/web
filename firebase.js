@@ -14,7 +14,12 @@ const firebaseConfig = {
   measurementId: "G-GR804VQBKM"
 };
 
+import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
 export const app = initializeApp(firebaseConfig);
+
+// Optional bot protection: paste a reCAPTCHA v3 site key (Firebase Console > App Check) to enable.
+export const APP_CHECK_KEY = "";
+if (APP_CHECK_KEY) initializeAppCheck(app, { provider: new ReCaptchaV3Provider(APP_CHECK_KEY), isTokenAutoRefreshEnabled: true });
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
