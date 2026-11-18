@@ -67,7 +67,7 @@ onAuthStateChanged(auth, async u => {
 });
 
 function tabs(){
-  const t = [["overview","Overview"],["publish","Publish"],["listings","Listings"],["users","Users"],["audit","Audit log"]].filter(x=>role==="admin"||x[0]==="listings"||x[0]==="overview");
+  const t = [["overview","Overview"],["reports","Reports"],["publish","Publish"],["listings","Listings"],["users","Users"],["audit","Audit log"]].filter(x=>role==="admin"||x[0]==="listings"||x[0]==="overview"||x[0]==="reports");
   return `<div class="tabs">${t.map(x=>`<button data-t="${x[0]}" class="${tab===x[0]?"on":""}">${x[1]}</button>`).join("")}</div>`;
 }
 async function show(){
@@ -79,6 +79,15 @@ async function show(){
       const c = async n => (await getCountFromServer(collection(db,n))).data().count;
       const [u,l,a] = await Promise.all([role==="admin"?c("users"):0,c("listings"),role==="admin"?c("audit"):0]);
       v.innerHTML = `<div class="stats"><div class="card"><b>${u}</b>Users</div><div class="card"><b>${l}</b>Listings</div><div class="card"><b>${a}</b>Audit entries</div></div>`;
+    }
+    if(tab==="reports"){
+      const s = await getDocs(query(collection(db,"reports"),limit(100)));
+      const rows = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+      v.innerHTML = rows.length ? `<div class="wrap"><table><tr><th>Type</th><th>Reason</th><th>Status</th><th>Action</th></tr>${rows.map(r=>`<tr><td>${esc(r.kind)}</td><td>${esc(r.reason)}<br><small>target: ${esc(r.target)}</small></td><td><span class="pill">${esc(r.status)}</span></td><td>${r.status==="open"?`${r.kind==="listing"?`<button class="alt" data-hl="${r.id}" data-t="${esc(r.target)}">Hide listing</button> `:""}${role==="admin"&&r.targetUser?`<button class="bad" data-su="${r.id}" data-u="${esc(r.targetUser)}">Suspend user</button> `:""}<button class="alt" data-dm="${r.id}">Dismiss</button>`:""}</td></tr>`).join("")}</table></div>` : `<div class="card">No reports.</div>`;
+      const close = async (id,a,t)=>{ await updateDoc(doc(db,"reports",id),{status:"closed",handledBy:me.uid}); await audit(a,t); show(); };
+      v.querySelectorAll("[data-hl]").forEach(b=>b.onclick=async()=>{ await updateDoc(doc(db,"listings",b.dataset.t),{status:"hidden"}); close(b.dataset.hl,"report_hide_listing",b.dataset.t); });
+      v.querySelectorAll("[data-su]").forEach(b=>b.onclick=async()=>{ if(!confirm("Suspend this user?")) return; await updateDoc(doc(db,"users",b.dataset.u),{suspended:true}); close(b.dataset.su,"report_suspend_user",b.dataset.u); });
+      v.querySelectorAll("[data-dm]").forEach(b=>b.onclick=()=>close(b.dataset.dm,"report_dismiss",b.dataset.dm));
     }
     if(tab==="publish"){
       v.innerHTML = `<form class="card" id="pf" style="display:grid;gap:10px;max-width:520px"><h2>Publish as MAVYQO</h2>
@@ -103,7 +112,8 @@ async function show(){
     }
     if(tab==="users" && role==="admin"){
       const s = await getDocs(query(collection(db,"users"),limit(200)));
-      v.innerHTML = `<div class="wrap"><table><tr><th>Name</th><th>Email</th><th>Role</th></tr>${s.docs.map(d=>{const u=d.data();return `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td><select data-u="${d.id}" ${d.id===me.uid?"disabled":""}>${ROLES.map(r=>`<option ${r===u.role?"selected":""}>${r}</option>`).join("")}</select></td></tr>`}).join("")}</table></div>`;
+      v.innerHTML = `<div class="wrap"><table><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr>${s.docs.map(d=>{const u=d.data();return `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td><select data-u="${d.id}" ${d.id===me.uid?"disabled":""}>${ROLES.map(r=>`<option ${r===u.role?"selected":""}>${r}</option>`).join("")}</select></td><td>${u.suspended?"🚫 ":""}<button class="alt" data-sx="${d.id}" data-v="${u.suspended?1:0}" ${d.id===me.uid?"disabled":""}>${u.suspended?"Unsuspend":"Suspend"}</button></td></tr>`}).join("")}</table></div>`;
+      v.querySelectorAll("[data-sx]").forEach(b=>b.onclick=async()=>{ const on=b.dataset.v!=="1"; if(on&&!confirm("Suspend this user? They can no longer post, order or message.")) return; await updateDoc(doc(db,"users",b.dataset.sx),{suspended:on}); await audit((on?"suspend":"unsuspend")+"_user",b.dataset.sx); show(); });
       v.querySelectorAll("[data-u]").forEach(sel=>sel.onchange=async()=>{ await updateDoc(doc(db,"users",sel.dataset.u),{role:sel.value}); await audit("set_role:"+sel.value,sel.dataset.u); });
     }
     if(tab==="audit" && role==="admin"){
