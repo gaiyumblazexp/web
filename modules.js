@@ -6,6 +6,11 @@ import { collection, query, where, getDocs, addDoc, doc, setDoc, getDoc, updateD
 
 const M = { orders: [], tasks: { mine: [], work: [], open: [] }, me: {}, chats: [], msgs: [], cur: null, unsub: null, draft: "", donors: [], reqs: [], resp: {}, mine: null, map: null };
 const uid = () => auth.currentUser.uid;
+// In-app notification to another user (rules cap the size and require from == sender).
+async function notify(to, title, body) {
+  if (!to || to === uid()) return;
+  try { await addDoc(collection(db, "users", to, "notifications"), { from: uid(), title: title.slice(0, 80), body: body.slice(0, 200), read: false, createdAt: serverTimestamp() }); } catch { /* best effort */ }
+}
 const ids = s => s.docs.map(d => ({ id: d.id, ...d.data() }));
 const byNew = (a, b) => (b.createdAt?.seconds || b.updatedAt?.seconds || 0) - (a.createdAt?.seconds || a.updatedAt?.seconds || 0);
 const cart = () => { try { return JSON.parse(localStorage.cart || "[]"); } catch { return []; } };
@@ -68,14 +73,16 @@ export const views = {
         const address = val("addr"); if (!address) throw new Error("Enter a delivery address");
         if (!ct.length) return;
         await addDoc(collection(db, "orders"), { buyer: uid(), buyerName: auth.currentUser.displayName || "", items: ct, sellerIds: [...new Set(ct.map(i => i.seller))], total: ct.reduce((s, i) => s + i.price * i.qty, 0), status: "placed", payment: "cash_on_delivery", address, createdAt: serverTimestamp() });
+        for (const sl of [...new Set(ct.map(i => i.seller))]) await notify(sl, "New order 🛒", `${auth.currentUser.displayName || "A customer"} placed an order with you`);
         localStorage.cart = "[]"; await this.init(); c.toast("Order placed");
       } else if (a === "rate") {
         const r = parseInt(prompt("Rating 1 to 5"), 10); if (!(r >= 1 && r <= 5)) return "skip";
         const text = (prompt("Short review (optional, no phone numbers)") || "").slice(0, 300);
         if (hasPhone(text)) throw new Error("Please don't put phone numbers in reviews");
         await setDoc(doc(db, "reviews", el.dataset.o + "_" + el.dataset.s), { order: el.dataset.o, seller: el.dataset.s, buyer: uid(), buyerName: auth.currentUser.displayName || "", rating: r, text, createdAt: serverTimestamp() });
+        await notify(el.dataset.s, "New review ⭐", `You received ${r} star${r > 1 ? "s" : ""}`);
         c.toast("Thanks for your review"); return "skip";
-      } else if (a === "st") { await updateDoc(doc(db, "orders", el.dataset.id), { status: el.dataset.s }); await this.init(); }
+      } else if (a === "st") { const o = M.orders.find(x => x.id === el.dataset.id); await updateDoc(doc(db, "orders", el.dataset.id), { status: el.dataset.s }); if (o) await notify(o.buyer, "Order " + el.dataset.s, "Your order is now " + el.dataset.s); await this.init(); }
     }
   },
 
@@ -115,10 +122,11 @@ export const views = {
         if (!d.pickup || !d.drop || !d.area || !(d.fee >= 20)) throw new Error("Fill pickup, delivery, area and a fee of at least ৳20");
         await addDoc(collection(db, "tasks"), d); c.toast("Request sent");
       } else if (a === "cancel") await updateDoc(doc(db, "tasks", id), { status: "cancelled" });
-      else if (a === "done") await updateDoc(doc(db, "tasks", id), { status: "done" });
+      else if (a === "done") { const tk = M.tasks.mine.find(x => x.id === id); await updateDoc(doc(db, "tasks", id), { status: "done" }); await notify(tk?.helper, "Task confirmed ✅", "The requester confirmed completion"); }
       else if (a === "avail") await updateDoc(doc(db, "users", u), { available: !M.me.available });
       else if (a === "step") {
         await updateDoc(doc(db, "tasks", id), { status: el.dataset.s });
+        await notify(M.tasks.work.find(x => x.id === id)?.requester, "Task update", el.dataset.s === "delivered" ? "Delivered. Please confirm you received it." : "Your item was picked up");
         if (el.dataset.s === "delivered") await updateDoc(doc(db, "users", u), { busy: false });
       } else if (a === "accept") {
         // Transaction = the lock: only one helper can move a task from open to accepted.
@@ -130,6 +138,7 @@ export const views = {
           tx.update(tr, { status: "accepted", helper: u, helperName: auth.currentUser.displayName || "" });
           tx.update(ur, { busy: true });
         });
+        await notify(M.tasks.open.find(x => x.id === id)?.requester, "Helper accepted ✅", "A helper accepted your request");
         c.toast("Task accepted");
       }
       await this.init(c);
@@ -140,14 +149,25 @@ export const views = {
   chat: {
     icon: "💬", label: ["Chats", "চ্যাট"],
     full: () => !!M.cur,
-    async init() { M.chats = ids(await getDocs(query(collection(db, "chats"), where("members", "array-contains", uid())))).sort(byNew); },
+    badge: () => M.chats.filter(ch => ch.lastFrom && ch.lastFrom !== uid() && (ch.updatedAt?.seconds || 0) > (ch.reads?.[uid()]?.seconds || 0)).length,
+    async init(c) {
+      if (c?.S) { try { c.S.notes = ids(await getDocs(collection(db, "users", uid(), "notifications"))); } catch { /* ignore */ } } M.chats = ids(await getDocs(query(collection(db, "chats"), where("members", "array-contains", uid())))).sort(byNew); },
     render({ S, esc }) {
       const u = uid();
       const av = (n, z = 46) => `<span style="width:${z}px;height:${z}px;border-radius:50%;background:var(--grad);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex:none">${esc((n || "?")[0].toUpperCase())}</span>`;
       const who = ch => ch.names?.[ch.members.find(m => m !== u)] || "User";
       const tm = ts => ts ? new Date(ts.seconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
       const thumb = l => safeImg(l?.img) ? `<img src="${esc(tr(l.img, 120))}" alt="" style="width:44px;height:44px;border-radius:10px;object-fit:cover">` : `<span style="width:44px;height:44px;border-radius:10px;background:var(--line);display:inline-flex;align-items:center;justify-content:center">🛍</span>`;
-      if (!M.cur) return `<div class="hero"><h1>${S.lang === "bn" ? "চ্যাট" : "Chats"}</h1></div><div style="margin-top:8px">${M.chats.length ? M.chats.map(ch => `<button data-a="x:chat:open" data-id="${ch.id}" style="display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:12px 16px;border-bottom:1px solid var(--line)">${av(who(ch))}<span style="flex:1;min-width:0"><b>${esc(who(ch))}</b>${ch.listing ? ` <small style="color:var(--mut)">· ${esc(ch.listing.title)}</small>` : ""}<small style="display:block;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ch.last || "Say hello 👋")}</small></span><small style="color:var(--mut)">${tm(ch.updatedAt)}</small></button>`).join("") : `<div class="empty">No chats yet.<br>Open any listing and tap Message.</div>`}</div>`;
+      if (!M.cur) {
+        const un = ch => ch.lastFrom && ch.lastFrom !== u && (ch.updatedAt?.seconds || 0) > (ch.reads?.[u]?.seconds || 0);
+        const nu = M.chats.filter(un).length, nn = S.notes.filter(n => !n.read).length;
+        const seg = `<div class="row" style="padding:12px 16px 4px"><button data-a="x:chat:seg" data-s="msg" class="${M.seg !== "note" ? "on" : ""}">💬 ${S.lang === "bn" ? "মেসেজ" : "Messages"}${nu ? " (" + nu + ")" : ""}</button><button data-a="x:chat:seg" data-s="note" class="${M.seg === "note" ? "on" : ""}">🔔 ${S.lang === "bn" ? "নোটিফিকেশন" : "Notifications"}${nn ? " (" + nn + ")" : ""}</button></div>`;
+        const notes = [...S.notes].sort(byNew);
+        const body = M.seg === "note"
+          ? (notes.length ? notes.map(n => `<div class="card" style="margin:8px 16px"><b>${n.read ? "" : "🔵 "}${esc(n.title)}</b><div>${esc(n.body)}</div><small style="color:var(--mut)">${tm(n.createdAt)}</small></div>`).join("") : `<div class="empty">${S.lang === "bn" ? "এখনো কোনো নোটিফিকেশন নেই।" : "No notifications yet."}</div>`)
+          : (M.chats.length ? M.chats.map(ch => `<button data-a="x:chat:open" data-id="${ch.id}" style="display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:12px 16px;border-bottom:1px solid var(--line)">${av(who(ch))}<span style="flex:1;min-width:0"><b>${esc(who(ch))}</b>${ch.listing ? ` <small style="color:var(--mut)">· ${esc(ch.listing.title)}</small>` : ""}<small style="display:block;color:${un(ch) ? "var(--tx)" : "var(--mut)"};font-weight:${un(ch) ? 700 : 400};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ch.last || "Say hello 👋")}</small></span><span style="text-align:right"><small style="color:var(--mut)">${tm(ch.updatedAt)}</small>${un(ch) ? "<br>🔵" : ""}</span></button>`).join("") : `<div class="empty">${S.lang === "bn" ? "এখনো কোনো চ্যাট নেই।<br>যেকোনো পোস্টে Message চাপুন।" : "No chats yet.<br>Open any listing and tap Message."}</div>`);
+        return `<div class="hero"><h1>${S.lang === "bn" ? "ইনবক্স" : "Inbox"}</h1></div>${seg}<div style="margin-top:4px">${body}</div>`;
+      }
       const ch = M.chats.find(x => x.id === M.cur) || { members: [u], names: {} }, blocked = (ch.blockedBy || []).length > 0;
       const quick = ["Is this still available?", "What's your lowest price?", "Where can we meet?"];
       return `<div style="position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) 12px 8px">
@@ -164,7 +184,7 @@ export const views = {
     },
     async send(text, img) {
       await addDoc(collection(db, "chats", M.cur, "messages"), { from: uid(), text, img: img || "", at: serverTimestamp() });
-      await updateDoc(doc(db, "chats", M.cur), { last: text || "📷 Photo", updatedAt: serverTimestamp() });
+      await updateDoc(doc(db, "chats", M.cur), { last: text || "📷 Photo", lastFrom: uid(), updatedAt: serverTimestamp(), ["reads." + uid()]: serverTimestamp() });
     },
     async on(a, el, c) {
       const u = uid();
@@ -179,8 +199,13 @@ export const views = {
       }
       if (a === "open") {
         M.cur = el.dataset.id; M.msgs = []; M.draft = ""; M.unsub?.();
-        M.unsub = onSnapshot(query(collection(db, "chats", M.cur, "messages"), orderBy("at"), limit(100)), s => { M.msgs = ids(s); if (c.S.tab === "chat") c.render(); }, e => c.toast(e.code));
-      } else if (a === "back") { M.unsub?.(); M.cur = null; await this.init(); }
+        updateDoc(doc(db, "chats", M.cur), { ["reads." + u]: serverTimestamp() }).catch(() => {});
+        M.unsub = onSnapshot(query(collection(db, "chats", M.cur, "messages"), orderBy("at"), limit(100)), s => { M.msgs = ids(s); if (M.msgs.at(-1) && M.msgs.at(-1).from !== uid()) updateDoc(doc(db, "chats", M.cur), { ["reads." + uid()]: serverTimestamp() }).catch(() => {}); if (c.S.tab === "chat") c.render(); }, e => c.toast(e.code));
+      } else if (a === "back") { M.unsub?.(); M.cur = null; await this.init(c); }
+      else if (a === "seg") {
+        M.seg = el.dataset.s;
+        if (M.seg === "note") { const unr = c.S.notes.filter(n => !n.read); await Promise.all(unr.map(n => updateDoc(doc(db, "users", u, "notifications", n.id), { read: true }).catch(() => {}))); unr.forEach(n => n.read = true); }
+      }
       else if (a === "quick") await this.send(el.dataset.m);
       else if (a === "send") {
         const text = val("msg"), f = document.getElementById("mi")?.files[0]; if (!text && !f) return "skip";
