@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>MAVYQO</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1f4bff">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{--navy:#0a1240;--blue:#1f4bff;--purple:#6a2cff;--bg:#f3f5ff;--card:#fff;--tx:#0a1240;--mut:#5b648f;--line:#e1e5fa;--grad:linear-gradient(135deg,#1f4bff,#6a2cff)}
@@ -62,6 +67,7 @@ input,select,textarea{width:100%;padding:11px 12px;border-radius:12px;border:1px
 .pc small{color:var(--mut);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pc .add{margin:0 10px 10px;padding:8px;border-radius:10px;background:var(--grad);color:#fff;font-size:13px;font-weight:700}
 .pc{position:relative}.hrt{position:absolute;top:8px;right:8px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.92);color:#d7263d;font-size:18px}
+.bdg{position:absolute;top:-6px;right:-12px;background:#d7263d;color:#fff;border-radius:99px;font-size:11px;min-width:18px;padding:0 5px;display:none;line-height:18px}
 .bub{max-width:78%;padding:9px 13px;border-radius:18px;margin:4px 0;word-wrap:break-word;width:fit-content}
 .bub.me{margin-left:auto;background:var(--grad);color:#fff;border-bottom-right-radius:6px}
 .bub.th{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:6px}
@@ -96,6 +102,15 @@ const $ = s => document.querySelector(s);
 const toast = m => { const d=document.createElement("div"); d.className="toast"; d.textContent=m; document.body.append(d); setTimeout(()=>d.remove(),2200); };
 
 async function loadRev(o){ if(!o||S.rev[o]) return; try{ const q=await getDocs(query(collection(db,"reviews"),where("seller","==",o),limit(20))); const l=q.docs.map(d=>d.data()); S.rev[o]={n:l.length,avg:l.length?l.reduce((a,b)=>a+b.rating,0)/l.length:0,list:l.slice(0,3)}; render(); }catch{} }
+function updateBadge(){ const b=$("#bdg"); if(!b) return; const n=(X.views.chat.badge?.()||0)+S.notes.filter(x=>!x.read).length; b.textContent=n>9?"9+":n; b.style.display=n?"inline-block":"none"; }
+async function poll(){
+  if(!S.user||document.hidden) return;
+  try{
+    await X.views.chat.init();
+    const n=await getDocs(collection(db,"users",S.user.uid,"notifications")); S.notes=n.docs.map(d=>({id:d.id,...d.data()}));
+    if(S.tab==="chat"&&!X.views.chat.full()) render(); else updateBadge();
+  }catch{}
+}
 async function load(){
   try{
     const s = await getDocs(query(collection(db,"listings"),where("status","==","active"),orderBy("createdAt","desc"),limit(S.lim)));
@@ -103,6 +118,7 @@ async function load(){
     const w = await getDocs(collection(db,"users",S.user.uid,"wishlist")); S.wishDocs = w.docs.map(d=>({id:d.id,...d.data()})); S.wish = new Set(S.wishDocs.map(x=>x.id));
     const n = await getDocs(collection(db,"users",S.user.uid,"notifications"));
     S.notes = n.docs.map(d=>({id:d.id,...d.data()}));
+    await X.views.chat.init().catch(()=>{});
   }catch(e){ toast(e.code||"Load failed"); }
   render();
 }
@@ -126,8 +142,8 @@ function home(){
   const sameA = i=>i.area?.toLowerCase()===S.area.toLowerCase();
   const prods = S.items.filter(i=>i.type==="product"&&match(i)).sort((a,b)=>sameA(b)-sameA(a));
   const near = S.items.filter(i=>i.type!=="product"&&sameA(i)&&match(i));
-  return `<div class="hero"><div class="bar"><button class="ib" data-a="drawer" aria-label="${t("menu")}">☰</button><button class="chip" data-a="area">📍 ${esc(S.area)} ▾</button><span class="sp"></span></div>
-  <h1>${t("hi")}, ${esc(S.user.displayName||"")}!</h1><div>${t("tag")}</div>
+  return `<div class="hero"><div class="bar"><button class="ib" data-a="drawer" aria-label="${t("menu")}">☰</button><button class="chip" data-a="area">📍 ${esc(S.area)} ▾</button><span class="sp"></span><img src="icon-192.png" alt="MAVYQO" width="40" height="40" style="border-radius:12px"></div>
+  <h1>${t("hi")}, ${esc(S.user.displayName||S.user.email.split("@")[0])}!</h1><div>${t("tag")}</div>
   <input class="search" id="q" placeholder="${t("search")}" value="${esc(S.q)}" aria-label="${t("search")}"></div>
   <div class="grid">${TYPES.map(r=>`<button class="tile" data-a="go" data-t="${r[0]}"><b>${r[1]}</b>${esc(tn(r))}</button>`).join("")}</div>
   <div class="sec"><h2>🛍 ${S.lang==="bn"?"জনপ্রিয় পণ্য":"Popular products"}</h2>${pgrid(prods.slice(0,12))||`<div class="empty">${t("none")}</div>`}${loadMore()}<h2>${t("nearby")}</h2>${near.length?near.slice(0,8).map(card).join(""):`<div class="empty">${t("none")}</div>`}</div>`;
@@ -149,7 +165,7 @@ function profile(){
 }
 function authView(){
   const su = S.authMode==="signup";
-  return `<div class="auth"><h1 style="font-size:34px">MAVYQO</h1><p>${t("tag")}</p>
+  return `<div class="auth"><img src="icon-192.png" alt="" width="88" height="88" style="border-radius:24px;display:block"><h1 style="font-size:34px">MAVYQO</h1><p>${t("tag")}</p>
   ${su?`<label for="n">${t("name")}</label><input id="n" autocomplete="name">`:""}
   <label for="e">${t("email")}</label><input id="e" type="email" autocomplete="email">
   <label for="p">${t("pass")}</label><input id="p" type="password" autocomplete="${su?"new-password":"current-password"}">
@@ -185,8 +201,8 @@ function render(){
   if(!S.user){ app.innerHTML = authView(); return; }
   const ext = X.views[S.tab]; const v = ext ? ext.render(ctx()) : {home,explore,inbox,profile}[S.tab]();
   const nb = (k,i)=>`<button data-a="tab" data-t="${k}" class="${S.tab===k?"on":""}"><span style="font-size:20px">${i}</span>${t(k)}</button>`;
-  app.innerHTML = v + (ext?.full?.()?"":`<nav>${nb("home","🏠")}${nb("explore","🧭")}<button class="plus" data-a="create" aria-label="${t("create")}">+</button>${nb("inbox","💬")}${nb("profile","👤")}</nav>`) + (S.ov==="drawer"?drawer():overlay());
-  if(ext?.after) ext.after(ctx()); const q = $("#q"); if(q){ q.oninput = e=>{ S.q=e.target.value; clearTimeout(S._d); S._d=setTimeout(()=>{ const p=e.target.selectionStart; render(); const n=$("#q"); n.focus(); n.setSelectionRange(p,p); },250); }; }
+  app.innerHTML = v + (ext?.full?.()?"":`<nav>${nb("home","🏠")}${nb("explore","🧭")}<button class="plus" data-a="create" aria-label="${t("create")}">+</button><button data-a="dgo" data-t="chat" class="${S.tab==="chat"?"on":""}"><span style="font-size:20px;position:relative">💬<b id="bdg" class="bdg"></b></span>${t("inbox")}</button>${nb("profile","👤")}</nav>`) + (S.ov==="drawer"?drawer():overlay());
+  updateBadge(); if(ext?.after) ext.after(ctx()); const q = $("#q"); if(q){ q.oninput = e=>{ S.q=e.target.value; clearTimeout(S._d); S._d=setTimeout(()=>{ const p=e.target.selectionStart; render(); const n=$("#q"); n.focus(); n.setSelectionRange(p,p); },250); }; }
 }
 
 document.addEventListener("click", async e=>{
@@ -259,6 +275,9 @@ document.addEventListener("click", async e=>{
   render();
 });
 onAuthStateChanged(auth, u=>{ S.user=u; S.tab="home"; if(u) load(); else render(); });
+setInterval(poll,30000);
+document.addEventListener("visibilitychange",poll);
+if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(()=>{});
 render();
 </script>
 </body>
